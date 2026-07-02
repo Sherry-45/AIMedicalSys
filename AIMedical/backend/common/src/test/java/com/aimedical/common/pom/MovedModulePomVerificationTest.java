@@ -32,8 +32,8 @@ class MovedModulePomVerificationTest {
     }
 
     @Test
-    void rootPomShouldHaveExactlyThirteenModules() {
-        assertEquals(13, rootPom.getDocumentElement()
+    void rootPomShouldHaveExactlyTwelveModules() {
+        assertEquals(12, rootPom.getDocumentElement()
             .getElementsByTagName("module").getLength());
     }
 
@@ -49,7 +49,6 @@ class MovedModulePomVerificationTest {
         assertTrue(exists("/project/modules/module[.='modules/medical-order']"));
         assertTrue(exists("/project/modules/module[.='modules/consultation']"));
         assertTrue(exists("/project/modules/module[.='modules/prescription']"));
-        assertTrue(exists("/project/modules/module[.='modules/medical-record']"));
         assertTrue(exists("/project/modules/module[.='application']"));
         assertTrue(exists("/project/modules/module[.='integration']"));
     }

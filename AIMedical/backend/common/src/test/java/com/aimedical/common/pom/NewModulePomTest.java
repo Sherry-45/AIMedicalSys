@@ -17,7 +17,6 @@ class NewModulePomTest {
 
     private static Document consultationDoc;
     private static Document prescriptionDoc;
-    private static Document medicalRecordDoc;
     private static XPath xpath;
 
     @BeforeAll
@@ -27,7 +26,6 @@ class NewModulePomTest {
         DocumentBuilder builder = factory.newDocumentBuilder();
         consultationDoc = builder.parse(new File("../modules/consultation/pom.xml"));
         prescriptionDoc = builder.parse(new File("../modules/prescription/pom.xml"));
-        medicalRecordDoc = builder.parse(new File("../modules/medical-record/pom.xml"));
         xpath = XPathFactory.newInstance().newXPath();
     }
 
@@ -128,56 +126,9 @@ class NewModulePomTest {
     }
 
     @Test
-    void medicalRecordParentShouldBeAimedicalSys() throws Exception {
-        assertEquals("com.aimedical", xpath(medicalRecordDoc, "/project/parent/groupId"));
-        assertEquals("aimedical-sys", xpath(medicalRecordDoc, "/project/parent/artifactId"));
-        assertEquals("0.0.1-SNAPSHOT", xpath(medicalRecordDoc, "/project/parent/version"));
-        assertEquals("../../pom.xml", xpath(medicalRecordDoc, "/project/parent/relativePath"));
-    }
-
-    @Test
-    void medicalRecordShouldHaveCorrectArtifactId() throws Exception {
-        assertEquals("medical-record", xpath(medicalRecordDoc, "/project/artifactId"));
-    }
-
-    @Test
-    void medicalRecordShouldBeJarPackaging() throws Exception {
-        assertEquals("jar", xpath(medicalRecordDoc, "/project/packaging"));
-    }
-
-    @Test
-    void medicalRecordShouldNotDeclareVersionInDependencies() throws Exception {
-        String base = "/project/dependencies/dependency";
-        String count = xpath(medicalRecordDoc, "count(" + base + "/version)");
-        assertEquals("0", count, "All dependency versions must be inherited from parent pom");
-    }
-
-    @Test
-    void medicalRecordShouldContainRequiredDependencies() throws Exception {
-        String base = "/project/dependencies/dependency";
-        assertTrue(exists(medicalRecordDoc, base + "[artifactId='lombok' and optional='true']"));
-        assertTrue(exists(medicalRecordDoc, base + "[artifactId='common' and groupId='com.aimedical']"));
-        assertTrue(exists(medicalRecordDoc, base + "[artifactId='common-module-api' and groupId='com.aimedical']"));
-        assertTrue(exists(medicalRecordDoc, base + "[artifactId='ai-api' and groupId='com.aimedical']"));
-        assertTrue(exists(medicalRecordDoc, base + "[artifactId='spring-boot-starter-web' and groupId='org.springframework.boot']"));
-        assertTrue(exists(medicalRecordDoc, base + "[artifactId='spring-boot-starter-data-jpa' and groupId='org.springframework.boot']"));
-        assertTrue(exists(medicalRecordDoc, base + "[artifactId='spring-boot-starter-validation' and groupId='org.springframework.boot']"));
-        assertTrue(exists(medicalRecordDoc, base + "[artifactId='spring-boot-starter-test' and groupId='org.springframework.boot' and scope='test']"));
-    }
-
-    @Test
-    void medicalRecordShouldHaveJacocoEnabled() throws Exception {
-        assertEquals("false", xpath(medicalRecordDoc, "/project/properties/jacoco.skip"));
-        assertEquals("false", xpath(medicalRecordDoc, "/project/properties/jacoco.skip.check"));
-    }
-
-    @Test
     void allModulesShouldHaveUniqueArtifactIds() throws Exception {
         String consultationId = xpath(consultationDoc, "/project/artifactId");
         String prescriptionId = xpath(prescriptionDoc, "/project/artifactId");
-        String medicalRecordId = xpath(medicalRecordDoc, "/project/artifactId");
         assertNotEquals(consultationId, prescriptionId);
-        assertNotEquals(consultationId, medicalRecordId);
-        assertNotEquals(prescriptionId, medicalRecordId);
     }
 }

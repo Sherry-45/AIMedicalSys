@@ -6,23 +6,41 @@ public class RegistrationEvent {
 
     private Long registrationId;
     private String patientId;
+    private String patientName;
     private String sessionId;
     private String departmentId;
     private String departmentName;
     private Long doctorId;
+    private Integer queueNumber;
     private LocalDateTime eventTime;
 
     public RegistrationEvent() {}
 
+    /**
+     * 向后兼容构造函数（不含 patientName / queueNumber）。
+     * 保留以避免破坏现有调用方。
+     */
     public RegistrationEvent(Long registrationId, String patientId, String sessionId,
                              String departmentId, String departmentName, Long doctorId,
                              LocalDateTime eventTime) {
+        this(registrationId, patientId, null, sessionId, departmentId, departmentName,
+                doctorId, null, eventTime);
+    }
+
+    /**
+     * 全参构造函数（含 patientName / queueNumber）。
+     */
+    public RegistrationEvent(Long registrationId, String patientId, String patientName,
+                             String sessionId, String departmentId, String departmentName,
+                             Long doctorId, Integer queueNumber, LocalDateTime eventTime) {
         this.registrationId = registrationId;
         this.patientId = patientId;
+        this.patientName = patientName;
         this.sessionId = sessionId;
         this.departmentId = departmentId;
         this.departmentName = departmentName;
         this.doctorId = doctorId;
+        this.queueNumber = queueNumber;
         this.eventTime = eventTime;
     }
 
@@ -31,6 +49,9 @@ public class RegistrationEvent {
 
     public String getPatientId() { return patientId; }
     public void setPatientId(String patientId) { this.patientId = patientId; }
+
+    public String getPatientName() { return patientName; }
+    public void setPatientName(String patientName) { this.patientName = patientName; }
 
     public String getSessionId() { return sessionId; }
     public void setSessionId(String sessionId) { this.sessionId = sessionId; }
@@ -43,6 +64,9 @@ public class RegistrationEvent {
 
     public Long getDoctorId() { return doctorId; }
     public void setDoctorId(Long doctorId) { this.doctorId = doctorId; }
+
+    public Integer getQueueNumber() { return queueNumber; }
+    public void setQueueNumber(Integer queueNumber) { this.queueNumber = queueNumber; }
 
     public LocalDateTime getEventTime() { return eventTime; }
     public void setEventTime(LocalDateTime eventTime) { this.eventTime = eventTime; }

@@ -1,14 +1,14 @@
 package com.aimedical.modules.doctor.api;
 
 import com.aimedical.common.result.Result;
+import com.aimedical.modules.ai.api.dto.diagnosis.DiagnosisRequest;
+import com.aimedical.modules.ai.api.dto.diagnosis.DiagnosisResponse;
+import com.aimedical.modules.ai.api.dto.examination.ExaminationRecommendRequest;
+import com.aimedical.modules.ai.api.dto.examination.ExaminationRecommendResponse;
 import com.aimedical.modules.commonmodule.auth.CurrentUser;
-import com.aimedical.modules.doctor.dto.request.AiDiagnosisRequest;
-import com.aimedical.modules.doctor.dto.request.AiExaminationRequest;
 import com.aimedical.modules.doctor.dto.request.AiMedicalRecordGenRequest;
 import com.aimedical.modules.doctor.dto.request.AiPrescriptionAssistRequest;
 import com.aimedical.modules.doctor.dto.request.AiPrescriptionAuditRequest;
-import com.aimedical.modules.doctor.dto.response.AiDiagnosisResponse;
-import com.aimedical.modules.doctor.dto.response.AiExaminationResponse;
 import com.aimedical.modules.doctor.dto.response.AiMedicalRecordGenResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAssistResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAuditResponse;
@@ -57,12 +57,15 @@ class DoctorAiControllerTest {
 
     @Test
     void diagnosis_shouldDelegateToServiceWithCurrentDoctorId() {
-        AiDiagnosisRequest request = new AiDiagnosisRequest(100L, "头痛", "无", "无");
+        DiagnosisRequest request = new DiagnosisRequest(100L, "头痛", "无", "无");
         when(currentUser.getUserId()).thenReturn(DOCTOR_ID);
+        DiagnosisResponse response = new DiagnosisResponse();
+        response.setPossibleDiagnoses(List.of());
+        response.setSummary("建议");
         when(doctorAiService.diagnosis(request, DOCTOR_ID))
-                .thenReturn(Result.success(AiResultResponse.ok(new AiDiagnosisResponse(List.of(), "建议"))));
+                .thenReturn(Result.success(AiResultResponse.ok(response)));
 
-        Result<AiResultResponse<AiDiagnosisResponse>> result = controller.diagnosis(request);
+        Result<AiResultResponse<DiagnosisResponse>> result = controller.diagnosis(request);
 
         assertEquals("SUCCESS", result.getCode());
         verify(doctorAiService).diagnosis(request, DOCTOR_ID);
@@ -70,12 +73,14 @@ class DoctorAiControllerTest {
 
     @Test
     void recommendExamination_shouldDelegateToServiceWithCurrentDoctorId() {
-        AiExaminationRequest request = new AiExaminationRequest(100L, "感冒", "头痛");
+        ExaminationRecommendRequest request = new ExaminationRecommendRequest(100L, "感冒", "头痛");
         when(currentUser.getUserId()).thenReturn(DOCTOR_ID);
+        ExaminationRecommendResponse response = new ExaminationRecommendResponse();
+        response.setItems(List.of());
         when(doctorAiService.recommendExamination(request, DOCTOR_ID))
-                .thenReturn(Result.success(AiResultResponse.ok(new AiExaminationResponse(List.of()))));
+                .thenReturn(Result.success(AiResultResponse.ok(response)));
 
-        Result<AiResultResponse<AiExaminationResponse>> result = controller.recommendExamination(request);
+        Result<AiResultResponse<ExaminationRecommendResponse>> result = controller.recommendExamination(request);
 
         assertEquals("SUCCESS", result.getCode());
         verify(doctorAiService).recommendExamination(request, DOCTOR_ID);
@@ -125,6 +130,6 @@ class DoctorAiControllerTest {
         when(currentUser.getUserId()).thenReturn(null);
 
         assertThrows(IllegalStateException.class, () -> controller.diagnosis(
-                new AiDiagnosisRequest(100L, "头痛", "无", "无")));
+                new DiagnosisRequest(100L, "头痛", "无", "无")));
     }
 }

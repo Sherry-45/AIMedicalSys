@@ -26,7 +26,6 @@
         <module>modules/medical-order</module>
         <module>modules/consultation</module>
         <module>modules/prescription</module>
-        <module>modules/medical-record</module>
         <module>application</module>
         <module>integration</module>
     </modules>

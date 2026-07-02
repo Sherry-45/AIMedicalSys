@@ -3,18 +3,16 @@ package com.aimedical.modules.doctor.service.impl;
 import com.aimedical.common.result.Result;
 import com.aimedical.modules.ai.api.AiResult;
 import com.aimedical.modules.ai.api.AiService;
+import com.aimedical.modules.ai.api.dto.diagnosis.DiagnosisRequest;
 import com.aimedical.modules.ai.api.dto.diagnosis.DiagnosisResponse;
+import com.aimedical.modules.ai.api.dto.examination.ExaminationRecommendRequest;
 import com.aimedical.modules.ai.api.dto.examination.ExaminationRecommendResponse;
 import com.aimedical.modules.ai.api.dto.medicalrecord.MedicalRecordGenResponse;
 import com.aimedical.modules.ai.api.dto.prescription.PrescriptionAssistResponse;
 import com.aimedical.modules.ai.api.dto.prescription.PrescriptionCheckResponse;
-import com.aimedical.modules.doctor.dto.request.AiDiagnosisRequest;
-import com.aimedical.modules.doctor.dto.request.AiExaminationRequest;
 import com.aimedical.modules.doctor.dto.request.AiMedicalRecordGenRequest;
 import com.aimedical.modules.doctor.dto.request.AiPrescriptionAssistRequest;
 import com.aimedical.modules.doctor.dto.request.AiPrescriptionAuditRequest;
-import com.aimedical.modules.doctor.dto.response.AiDiagnosisResponse;
-import com.aimedical.modules.doctor.dto.response.AiExaminationResponse;
 import com.aimedical.modules.doctor.dto.response.AiMedicalRecordGenResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAssistResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAuditResponse;
@@ -57,15 +55,12 @@ public class DoctorAiServiceImpl implements DoctorAiService {
     }
 
     @Override
-    public Result<AiResultResponse<AiDiagnosisResponse>> diagnosis(AiDiagnosisRequest request, Long doctorUserId) {
+    public Result<AiResultResponse<DiagnosisResponse>> diagnosis(DiagnosisRequest request, Long doctorUserId) {
         if (mockDegrade) {
             return Result.success(degradedDiagnosis());
         }
         try {
-            AiResult<DiagnosisResponse> result = aiService.diagnosis(
-                    new com.aimedical.modules.ai.api.dto.diagnosis.DiagnosisRequest(
-                            request.patientId(), request.chiefComplaint(),
-                            request.presentIllness(), request.pastHistory())).join();
+            AiResult<DiagnosisResponse> result = aiService.diagnosis(request).join();
             if (result.isDegraded() || !result.isSuccess()) {
                 return Result.success(degradedDiagnosis());
             }
@@ -73,10 +68,7 @@ public class DoctorAiServiceImpl implements DoctorAiService {
             if (aiData == null) {
                 return Result.success(degradedDiagnosis());
             }
-            AiDiagnosisResponse data = new AiDiagnosisResponse(
-                    aiData.getPossibleDiagnoses() != null ? aiData.getPossibleDiagnoses() : List.of(),
-                    aiData.getSummary() != null ? aiData.getSummary() : "");
-            return Result.success(AiResultResponse.ok(data));
+            return Result.success(AiResultResponse.ok(aiData));
         } catch (Exception e) {
             log.warn("AI diagnosis 调用异常，降级处理", e);
             return Result.success(degradedDiagnosis());
@@ -84,14 +76,12 @@ public class DoctorAiServiceImpl implements DoctorAiService {
     }
 
     @Override
-    public Result<AiResultResponse<AiExaminationResponse>> recommendExamination(AiExaminationRequest request, Long doctorUserId) {
+    public Result<AiResultResponse<ExaminationRecommendResponse>> recommendExamination(ExaminationRecommendRequest request, Long doctorUserId) {
         if (mockDegrade) {
             return Result.success(degradedExamination());
         }
         try {
-            AiResult<ExaminationRecommendResponse> result = aiService.recommendExamination(
-                    new com.aimedical.modules.ai.api.dto.examination.ExaminationRecommendRequest(
-                            request.patientId(), request.diagnosis(), request.chiefComplaint())).join();
+            AiResult<ExaminationRecommendResponse> result = aiService.recommendExamination(request).join();
             if (result.isDegraded() || !result.isSuccess()) {
                 return Result.success(degradedExamination());
             }
@@ -99,13 +89,7 @@ public class DoctorAiServiceImpl implements DoctorAiService {
             if (aiData == null) {
                 return Result.success(degradedExamination());
             }
-            List<AiExaminationResponse.ExaminationItem> items = aiData.getItems() == null
-                    ? List.of()
-                    : aiData.getItems().stream()
-                            .map(i -> new AiExaminationResponse.ExaminationItem(i.getName(), i.getCategory(), i.getReason()))
-                            .toList();
-            AiExaminationResponse data = new AiExaminationResponse(items);
-            return Result.success(AiResultResponse.ok(data));
+            return Result.success(AiResultResponse.ok(aiData));
         } catch (Exception e) {
             log.warn("AI recommendExamination 调用异常，降级处理", e);
             return Result.success(degradedExamination());
@@ -232,22 +216,27 @@ public class DoctorAiServiceImpl implements DoctorAiService {
 
     // ---------- 降级兜底数据 ----------
 
-    private AiResultResponse<AiDiagnosisResponse> degradedDiagnosis() {
+    private AiResultResponse<DiagnosisResponse> degradedDiagnosis() {
+        DiagnosisResponse fallback = new DiagnosisResponse();
+        fallback.setPossibleDiagnoses(List.of());
+        fallback.setSummary("AI 诊断服务不可用，请医生根据主诉、现病史及查体进行人工诊断");
         return AiResultResponse.degraded(
-                new AiDiagnosisResponse(List.of(), "AI 诊断服务不可用，请医生根据主诉、现病史及查体进行人工诊断"),
+                fallback,
                 "AI 诊断服务不可用，请医生根据主诉、现病史及查体进行人工诊断");
     }
 
-    private AiResultResponse<AiExaminationResponse> degradedExamination() {
+    private AiResultResponse<ExaminationRecommendResponse> degradedExamination() {
         // 兜底：提供常见检查项建议，避免完全无内容
-        List<AiExaminationResponse.ExaminationItem> fallbackItems = List.of(
-                new AiExaminationResponse.ExaminationItem("血常规", "检验", "通用基础检查"),
-                new AiExaminationResponse.ExaminationItem("尿常规", "检验", "通用基础检查"),
-                new AiExaminationResponse.ExaminationItem("心电图", "检查", "心血管基础筛查"),
-                new AiExaminationResponse.ExaminationItem("胸部X光", "检查", "呼吸系统基础筛查")
+        List<ExaminationRecommendResponse.ExaminationItem> fallbackItems = List.of(
+                new ExaminationRecommendResponse.ExaminationItem("血常规", "检验", "通用基础检查"),
+                new ExaminationRecommendResponse.ExaminationItem("尿常规", "检验", "通用基础检查"),
+                new ExaminationRecommendResponse.ExaminationItem("心电图", "检查", "心血管基础筛查"),
+                new ExaminationRecommendResponse.ExaminationItem("胸部X光", "检查", "呼吸系统基础筛查")
         );
+        ExaminationRecommendResponse fallback = new ExaminationRecommendResponse();
+        fallback.setItems(fallbackItems);
         return AiResultResponse.degraded(
-                new AiExaminationResponse(fallbackItems),
+                fallback,
                 "AI 检查推荐服务不可用，已返回通用检查项建议，请医生结合临床判断");
     }
 

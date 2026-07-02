@@ -425,7 +425,6 @@ CREATE TABLE `sys_token` (
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='令牌表';
 
 -- ---------------------------------------------
-<<<<<<< HEAD
 -- 22. consultation_queue  接诊/叫号队列
 -- ---------------------------------------------
 DROP TABLE IF EXISTS `consultation_queue`;

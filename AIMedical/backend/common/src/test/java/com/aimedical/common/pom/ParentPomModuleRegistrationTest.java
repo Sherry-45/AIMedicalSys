@@ -42,11 +42,6 @@ class ParentPomModuleRegistrationTest {
     }
 
     @Test
-    void parentPomShouldRegisterMedicalRecordModule() throws Exception {
-        assertTrue(exists("/project/modules/module[.='modules/medical-record']"));
-    }
-
-    @Test
     void newModulesShouldAppearAfterAdmin() throws Exception {
         String adminPosition = xpath.evaluate("count(/project/modules/module[.='modules/admin']/preceding-sibling::*)", doc);
         String consultationPosition = xpath.evaluate("count(/project/modules/module[.='modules/consultation']/preceding-sibling::*)", doc);

@@ -1,13 +1,13 @@
 package com.aimedical.modules.doctor.service;
 
 import com.aimedical.common.result.Result;
-import com.aimedical.modules.doctor.dto.request.AiDiagnosisRequest;
-import com.aimedical.modules.doctor.dto.request.AiExaminationRequest;
+import com.aimedical.modules.ai.api.dto.diagnosis.DiagnosisRequest;
+import com.aimedical.modules.ai.api.dto.diagnosis.DiagnosisResponse;
+import com.aimedical.modules.ai.api.dto.examination.ExaminationRecommendRequest;
+import com.aimedical.modules.ai.api.dto.examination.ExaminationRecommendResponse;
 import com.aimedical.modules.doctor.dto.request.AiMedicalRecordGenRequest;
 import com.aimedical.modules.doctor.dto.request.AiPrescriptionAssistRequest;
 import com.aimedical.modules.doctor.dto.request.AiPrescriptionAuditRequest;
-import com.aimedical.modules.doctor.dto.response.AiDiagnosisResponse;
-import com.aimedical.modules.doctor.dto.response.AiExaminationResponse;
 import com.aimedical.modules.doctor.dto.response.AiMedicalRecordGenResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAssistResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAuditResponse;
@@ -24,9 +24,9 @@ import com.aimedical.modules.doctor.dto.response.AiResultResponse;
  */
 public interface DoctorAiService {
 
-    Result<AiResultResponse<AiDiagnosisResponse>> diagnosis(AiDiagnosisRequest request, Long doctorUserId);
+    Result<AiResultResponse<DiagnosisResponse>> diagnosis(DiagnosisRequest request, Long doctorUserId);
 
-    Result<AiResultResponse<AiExaminationResponse>> recommendExamination(AiExaminationRequest request, Long doctorUserId);
+    Result<AiResultResponse<ExaminationRecommendResponse>> recommendExamination(ExaminationRecommendRequest request, Long doctorUserId);
 
     Result<AiResultResponse<AiPrescriptionAssistResponse>> prescriptionAssist(AiPrescriptionAssistRequest request, Long doctorUserId);
 

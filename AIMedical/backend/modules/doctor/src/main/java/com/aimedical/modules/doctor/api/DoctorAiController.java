@@ -1,14 +1,14 @@
 package com.aimedical.modules.doctor.api;
 
 import com.aimedical.common.result.Result;
+import com.aimedical.modules.ai.api.dto.diagnosis.DiagnosisRequest;
+import com.aimedical.modules.ai.api.dto.diagnosis.DiagnosisResponse;
+import com.aimedical.modules.ai.api.dto.examination.ExaminationRecommendRequest;
+import com.aimedical.modules.ai.api.dto.examination.ExaminationRecommendResponse;
 import com.aimedical.modules.commonmodule.auth.CurrentUser;
-import com.aimedical.modules.doctor.dto.request.AiDiagnosisRequest;
-import com.aimedical.modules.doctor.dto.request.AiExaminationRequest;
 import com.aimedical.modules.doctor.dto.request.AiMedicalRecordGenRequest;
 import com.aimedical.modules.doctor.dto.request.AiPrescriptionAssistRequest;
 import com.aimedical.modules.doctor.dto.request.AiPrescriptionAuditRequest;
-import com.aimedical.modules.doctor.dto.response.AiDiagnosisResponse;
-import com.aimedical.modules.doctor.dto.response.AiExaminationResponse;
 import com.aimedical.modules.doctor.dto.response.AiMedicalRecordGenResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAssistResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAuditResponse;
@@ -48,7 +48,7 @@ public class DoctorAiController {
      * 占位诊断入口。
      */
     @PostMapping("/diagnosis")
-    public Result<AiResultResponse<AiDiagnosisResponse>> diagnosis(@Valid @RequestBody AiDiagnosisRequest request) {
+    public Result<AiResultResponse<DiagnosisResponse>> diagnosis(@Valid @RequestBody DiagnosisRequest request) {
         return doctorAiService.diagnosis(request, currentDoctorId());
     }
 
@@ -56,7 +56,7 @@ public class DoctorAiController {
      * 开立检查推荐入口。
      */
     @PostMapping("/examination")
-    public Result<AiResultResponse<AiExaminationResponse>> recommendExamination(@Valid @RequestBody AiExaminationRequest request) {
+    public Result<AiResultResponse<ExaminationRecommendResponse>> recommendExamination(@Valid @RequestBody ExaminationRecommendRequest request) {
         return doctorAiService.recommendExamination(request, currentDoctorId());
     }
 

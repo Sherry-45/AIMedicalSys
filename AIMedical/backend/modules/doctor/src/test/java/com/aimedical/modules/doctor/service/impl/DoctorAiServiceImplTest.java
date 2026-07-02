@@ -13,13 +13,9 @@ import com.aimedical.modules.ai.api.dto.prescription.PrescriptionAssistRequest;
 import com.aimedical.modules.ai.api.dto.prescription.PrescriptionAssistResponse;
 import com.aimedical.modules.ai.api.dto.prescription.PrescriptionCheckRequest;
 import com.aimedical.modules.ai.api.dto.prescription.PrescriptionCheckResponse;
-import com.aimedical.modules.doctor.dto.request.AiDiagnosisRequest;
-import com.aimedical.modules.doctor.dto.request.AiExaminationRequest;
 import com.aimedical.modules.doctor.dto.request.AiMedicalRecordGenRequest;
 import com.aimedical.modules.doctor.dto.request.AiPrescriptionAssistRequest;
 import com.aimedical.modules.doctor.dto.request.AiPrescriptionAuditRequest;
-import com.aimedical.modules.doctor.dto.response.AiDiagnosisResponse;
-import com.aimedical.modules.doctor.dto.response.AiExaminationResponse;
 import com.aimedical.modules.doctor.dto.response.AiMedicalRecordGenResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAssistResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAuditResponse;
@@ -75,26 +71,26 @@ class DoctorAiServiceImplTest {
 
     @Test
     void diagnosis_shouldReturnDegradedResultWhenMockDegrade() {
-        Result<AiResultResponse<AiDiagnosisResponse>> result =
-                service.diagnosis(new AiDiagnosisRequest(100L, "头痛", "无", "无"), 200L);
+        Result<AiResultResponse<DiagnosisResponse>> result =
+                service.diagnosis(new DiagnosisRequest(100L, "头痛", "无", "无"), 200L);
 
         assertEquals("SUCCESS", result.getCode());
         assertNotNull(result.getData());
         assertTrue(result.getData().degraded());
         assertNotNull(result.getData().fallbackReason());
         assertNotNull(result.getData().data());
-        assertNotNull(result.getData().data().possibleDiagnoses());
+        assertNotNull(result.getData().data().getPossibleDiagnoses());
     }
 
     @Test
     void recommendExamination_shouldReturnDegradedResultWithFallbackItems() {
-        Result<AiResultResponse<AiExaminationResponse>> result =
-                service.recommendExamination(new AiExaminationRequest(100L, "感冒", "头痛"), 200L);
+        Result<AiResultResponse<ExaminationRecommendResponse>> result =
+                service.recommendExamination(new ExaminationRecommendRequest(100L, "感冒", "头痛"), 200L);
 
         assertEquals("SUCCESS", result.getCode());
         assertTrue(result.getData().degraded());
         assertNotNull(result.getData().data());
-        assertFalse(result.getData().data().items().isEmpty());
+        assertFalse(result.getData().data().getItems().isEmpty());
     }
 
     @Test
@@ -159,16 +155,16 @@ class DoctorAiServiceImplTest {
                 .thenReturn(CompletableFuture.completedFuture(AiResult.success(aiData)));
 
         DoctorAiService nonDegrading = nonDegradingService();
-        Result<AiResultResponse<AiDiagnosisResponse>> result =
-                nonDegrading.diagnosis(new AiDiagnosisRequest(100L, "头痛", "无", "无"), 200L);
+        Result<AiResultResponse<DiagnosisResponse>> result =
+                nonDegrading.diagnosis(new DiagnosisRequest(100L, "头痛", "无", "无"), 200L);
 
         assertEquals("SUCCESS", result.getCode());
         assertNotNull(result.getData());
         assertFalse(result.getData().degraded());
-        AiDiagnosisResponse data = result.getData().data();
+        DiagnosisResponse data = result.getData().data();
         assertNotNull(data);
-        assertEquals(List.of("上呼吸道感染", "急性咽炎"), data.possibleDiagnoses());
-        assertEquals("结合主诉与体征，考虑上呼吸道感染可能性大", data.summary());
+        assertEquals(List.of("上呼吸道感染", "急性咽炎"), data.getPossibleDiagnoses());
+        assertEquals("结合主诉与体征，考虑上呼吸道感染可能性大", data.getSummary());
         verify(aiService).diagnosis(any(DiagnosisRequest.class));
     }
 
@@ -182,8 +178,8 @@ class DoctorAiServiceImplTest {
                 .thenReturn(CompletableFuture.failedFuture(new RuntimeException("AI 服务不可用")));
 
         DoctorAiService nonDegrading = nonDegradingService();
-        Result<AiResultResponse<AiDiagnosisResponse>> result =
-                nonDegrading.diagnosis(new AiDiagnosisRequest(100L, "头痛", "无", "无"), 200L);
+        Result<AiResultResponse<DiagnosisResponse>> result =
+                nonDegrading.diagnosis(new DiagnosisRequest(100L, "头痛", "无", "无"), 200L);
 
         assertEquals("SUCCESS", result.getCode());
         assertNotNull(result.getData());
@@ -203,8 +199,8 @@ class DoctorAiServiceImplTest {
                 .thenReturn(CompletableFuture.completedFuture(AiResult.degraded("AI 服务限流，已降级")));
 
         DoctorAiService nonDegrading = nonDegradingService();
-        Result<AiResultResponse<AiDiagnosisResponse>> result =
-                nonDegrading.diagnosis(new AiDiagnosisRequest(100L, "头痛", "无", "无"), 200L);
+        Result<AiResultResponse<DiagnosisResponse>> result =
+                nonDegrading.diagnosis(new DiagnosisRequest(100L, "头痛", "无", "无"), 200L);
 
         assertEquals("SUCCESS", result.getCode());
         assertNotNull(result.getData());
@@ -225,16 +221,16 @@ class DoctorAiServiceImplTest {
                 .thenReturn(CompletableFuture.completedFuture(AiResult.success(aiData)));
 
         DoctorAiService nonDegrading = nonDegradingService();
-        Result<AiResultResponse<AiExaminationResponse>> result =
-                nonDegrading.recommendExamination(new AiExaminationRequest(100L, "感冒", "头痛"), 200L);
+        Result<AiResultResponse<ExaminationRecommendResponse>> result =
+                nonDegrading.recommendExamination(new ExaminationRecommendRequest(100L, "感冒", "头痛"), 200L);
 
         assertEquals("SUCCESS", result.getCode());
         assertFalse(result.getData().degraded());
-        List<AiExaminationResponse.ExaminationItem> items = result.getData().data().items();
+        List<ExaminationRecommendResponse.ExaminationItem> items = result.getData().data().getItems();
         assertEquals(2, items.size());
-        assertEquals("血常规", items.get(0).name());
-        assertEquals("检验", items.get(0).category());
-        assertEquals("心电图", items.get(1).name());
+        assertEquals("血常规", items.get(0).getName());
+        assertEquals("检验", items.get(0).getCategory());
+        assertEquals("心电图", items.get(1).getName());
         verify(aiService).recommendExamination(any(ExaminationRecommendRequest.class));
     }
 

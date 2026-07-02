@@ -87,6 +87,11 @@ export const doctorApi = {
     })
   },
 
+  /** 查询当前医生开立的所有处方（"我的处方"）。GET /api/doctor/prescriptions/by-doctor */
+  listPrescriptionsByDoctor: (): Promise<PrescriptionResponse[] | BusinessError> => {
+    return apiGet<PrescriptionResponse[]>('/doctor/prescriptions/by-doctor')
+  },
+
   /** 提交处方审核（DRAFT/REJECTED -> PENDING_REVIEW）。POST /api/doctor/prescriptions/{id}/submit */
   submitPrescription: (id: number): Promise<PrescriptionResponse | BusinessError> => {
     return apiPost<PrescriptionResponse>(`/doctor/prescriptions/${id}/submit`)

@@ -10,6 +10,7 @@ import { useMenuStore } from '../stores/menu'
  * <p>Phase 3 新增静态业务路由：
  * - 包A 诊疗闭环：/queue、/patient/:patientId/*（信息卡、病情录入、病历列表/详情/表单、处方表单）
  * - 包B AI 入口：/ai/*（诊断、检查、开方、审核、病历生成）
+ * - 包C 处方工作台：/prescriptions（我的处方列表）、/prescriptions/:id（处方详情/提交审核/审核）
  *
  * <p>注意路由顺序：静态字面量路径（如 .../medical-records/new）须排在动态参数路径
  * （如 .../medical-records/:id）之前，否则 "new" 会被当作 :id 匹配。
@@ -86,6 +87,19 @@ const routes: RouteRecordRaw[] = [
         path: '/patient/:patientId/prescriptions/new',
         name: 'PrescriptionForm',
         component: () => import('../views/PrescriptionForm.vue'),
+        meta: { requiresAuth: true },
+      },
+      // ---- 处方工作台 ----
+      {
+        path: '/prescriptions',
+        name: 'PrescriptionList',
+        component: () => import('../views/PrescriptionList.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/prescriptions/:id',
+        name: 'PrescriptionDetail',
+        component: () => import('../views/PrescriptionDetail.vue'),
         meta: { requiresAuth: true },
       },
       // ---- 包B：AI 入口 ----

@@ -19,7 +19,6 @@ import com.aimedical.modules.doctor.dto.request.AiPrescriptionAuditRequest;
 import com.aimedical.modules.doctor.dto.response.AiMedicalRecordGenResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAssistResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAuditResponse;
-import com.aimedical.modules.doctor.dto.response.AiResultResponse;
 import com.aimedical.modules.doctor.entity.AiRiskLevel;
 import com.aimedical.modules.doctor.service.DoctorAiService;
 import org.junit.jupiter.api.BeforeEach;
@@ -71,63 +70,63 @@ class DoctorAiServiceImplTest {
 
     @Test
     void diagnosis_shouldReturnDegradedResultWhenMockDegrade() {
-        Result<AiResultResponse<DiagnosisResponse>> result =
+        Result<AiResult<DiagnosisResponse>> result =
                 service.diagnosis(new DiagnosisRequest(100L, "头痛", "无", "无"), 200L);
 
         assertEquals("SUCCESS", result.getCode());
         assertNotNull(result.getData());
-        assertTrue(result.getData().degraded());
-        assertNotNull(result.getData().fallbackReason());
-        assertNotNull(result.getData().data());
-        assertNotNull(result.getData().data().getPossibleDiagnoses());
+        assertTrue(result.getData().isDegraded());
+        assertNotNull(result.getData().getFallbackReason());
+        assertNotNull(result.getData().getData());
+        assertNotNull(result.getData().getData().getPossibleDiagnoses());
     }
 
     @Test
     void recommendExamination_shouldReturnDegradedResultWithFallbackItems() {
-        Result<AiResultResponse<ExaminationRecommendResponse>> result =
+        Result<AiResult<ExaminationRecommendResponse>> result =
                 service.recommendExamination(new ExaminationRecommendRequest(100L, "感冒", "头痛"), 200L);
 
         assertEquals("SUCCESS", result.getCode());
-        assertTrue(result.getData().degraded());
-        assertNotNull(result.getData().data());
-        assertFalse(result.getData().data().getItems().isEmpty());
+        assertTrue(result.getData().isDegraded());
+        assertNotNull(result.getData().getData());
+        assertFalse(result.getData().getData().getItems().isEmpty());
     }
 
     @Test
     void prescriptionAssist_shouldReturnDegradedResult() {
-        Result<AiResultResponse<AiPrescriptionAssistResponse>> result =
+        Result<AiResult<AiPrescriptionAssistResponse>> result =
                 service.prescriptionAssist(
                         new AiPrescriptionAssistRequest(100L, "感冒", "头痛"), 200L);
 
         assertEquals("SUCCESS", result.getCode());
-        assertTrue(result.getData().degraded());
-        assertNotNull(result.getData().fallbackReason());
-        assertNotNull(result.getData().data());
+        assertTrue(result.getData().isDegraded());
+        assertNotNull(result.getData().getFallbackReason());
+        assertNotNull(result.getData().getData());
     }
 
     @Test
     void prescriptionAudit_shouldReturnDegradedResult() {
-        Result<AiResultResponse<AiPrescriptionAuditResponse>> result =
+        Result<AiResult<AiPrescriptionAuditResponse>> result =
                 service.prescriptionAudit(
                         new AiPrescriptionAuditRequest(1L, "感冒", List.of("阿莫西林")), 200L);
 
         assertEquals("SUCCESS", result.getCode());
-        assertTrue(result.getData().degraded());
+        assertTrue(result.getData().isDegraded());
         // 降级路径下 riskLevel 为 null（表示未知风险，由人工判断），passed=false
-        assertNull(result.getData().data().riskLevel());
-        assertFalse(result.getData().data().passed());
+        assertNull(result.getData().getData().riskLevel());
+        assertFalse(result.getData().getData().passed());
     }
 
     @Test
     void generateMedicalRecord_shouldReturnDegradedResult() {
-        Result<AiResultResponse<AiMedicalRecordGenResponse>> result =
+        Result<AiResult<AiMedicalRecordGenResponse>> result =
                 service.generateMedicalRecord(
                         new AiMedicalRecordGenRequest(100L, 1L, "头痛", "无", "无", "感冒"), 200L);
 
         assertEquals("SUCCESS", result.getCode());
-        assertTrue(result.getData().degraded());
-        assertNotNull(result.getData().fallbackReason());
-        assertNotNull(result.getData().data());
+        assertTrue(result.getData().isDegraded());
+        assertNotNull(result.getData().getFallbackReason());
+        assertNotNull(result.getData().getData());
     }
 
     // ---------- mockDegrade=false 路径：覆盖 AiService 成功/异常/降级三种分支 ----------
@@ -155,13 +154,13 @@ class DoctorAiServiceImplTest {
                 .thenReturn(CompletableFuture.completedFuture(AiResult.success(aiData)));
 
         DoctorAiService nonDegrading = nonDegradingService();
-        Result<AiResultResponse<DiagnosisResponse>> result =
+        Result<AiResult<DiagnosisResponse>> result =
                 nonDegrading.diagnosis(new DiagnosisRequest(100L, "头痛", "无", "无"), 200L);
 
         assertEquals("SUCCESS", result.getCode());
         assertNotNull(result.getData());
-        assertFalse(result.getData().degraded());
-        DiagnosisResponse data = result.getData().data();
+        assertFalse(result.getData().isDegraded());
+        DiagnosisResponse data = result.getData().getData();
         assertNotNull(data);
         assertEquals(List.of("上呼吸道感染", "急性咽炎"), data.getPossibleDiagnoses());
         assertEquals("结合主诉与体征，考虑上呼吸道感染可能性大", data.getSummary());
@@ -178,14 +177,14 @@ class DoctorAiServiceImplTest {
                 .thenReturn(CompletableFuture.failedFuture(new RuntimeException("AI 服务不可用")));
 
         DoctorAiService nonDegrading = nonDegradingService();
-        Result<AiResultResponse<DiagnosisResponse>> result =
+        Result<AiResult<DiagnosisResponse>> result =
                 nonDegrading.diagnosis(new DiagnosisRequest(100L, "头痛", "无", "无"), 200L);
 
         assertEquals("SUCCESS", result.getCode());
         assertNotNull(result.getData());
-        assertTrue(result.getData().degraded());
-        assertNotNull(result.getData().fallbackReason());
-        assertNotNull(result.getData().data());
+        assertTrue(result.getData().isDegraded());
+        assertNotNull(result.getData().getFallbackReason());
+        assertNotNull(result.getData().getData());
         verify(aiService).diagnosis(any(DiagnosisRequest.class));
     }
 
@@ -199,13 +198,13 @@ class DoctorAiServiceImplTest {
                 .thenReturn(CompletableFuture.completedFuture(AiResult.degraded("AI 服务限流，已降级")));
 
         DoctorAiService nonDegrading = nonDegradingService();
-        Result<AiResultResponse<DiagnosisResponse>> result =
+        Result<AiResult<DiagnosisResponse>> result =
                 nonDegrading.diagnosis(new DiagnosisRequest(100L, "头痛", "无", "无"), 200L);
 
         assertEquals("SUCCESS", result.getCode());
         assertNotNull(result.getData());
-        assertTrue(result.getData().degraded());
-        assertNotNull(result.getData().fallbackReason());
+        assertTrue(result.getData().isDegraded());
+        assertNotNull(result.getData().getFallbackReason());
         verify(aiService).diagnosis(any(DiagnosisRequest.class));
     }
 
@@ -221,12 +220,12 @@ class DoctorAiServiceImplTest {
                 .thenReturn(CompletableFuture.completedFuture(AiResult.success(aiData)));
 
         DoctorAiService nonDegrading = nonDegradingService();
-        Result<AiResultResponse<ExaminationRecommendResponse>> result =
+        Result<AiResult<ExaminationRecommendResponse>> result =
                 nonDegrading.recommendExamination(new ExaminationRecommendRequest(100L, "感冒", "头痛"), 200L);
 
         assertEquals("SUCCESS", result.getCode());
-        assertFalse(result.getData().degraded());
-        List<ExaminationRecommendResponse.ExaminationItem> items = result.getData().data().getItems();
+        assertFalse(result.getData().isDegraded());
+        List<ExaminationRecommendResponse.ExaminationItem> items = result.getData().getData().getItems();
         assertEquals(2, items.size());
         assertEquals("血常规", items.get(0).getName());
         assertEquals("检验", items.get(0).getCategory());
@@ -242,12 +241,12 @@ class DoctorAiServiceImplTest {
                 .thenReturn(CompletableFuture.completedFuture(AiResult.success(aiData)));
 
         DoctorAiService nonDegrading = nonDegradingService();
-        Result<AiResultResponse<AiPrescriptionAssistResponse>> result =
+        Result<AiResult<AiPrescriptionAssistResponse>> result =
                 nonDegrading.prescriptionAssist(new AiPrescriptionAssistRequest(100L, "感冒", "头痛"), 200L);
 
         assertEquals("SUCCESS", result.getCode());
-        assertFalse(result.getData().degraded());
-        AiPrescriptionAssistResponse data = result.getData().data();
+        assertFalse(result.getData().isDegraded());
+        AiPrescriptionAssistResponse data = result.getData().getData();
         assertEquals("建议抗感染治疗", data.summary());
         verify(aiService).prescriptionAssist(any(PrescriptionAssistRequest.class));
     }
@@ -265,13 +264,13 @@ class DoctorAiServiceImplTest {
                 .thenReturn(CompletableFuture.completedFuture(AiResult.success(aiData)));
 
         DoctorAiService nonDegrading = nonDegradingService();
-        Result<AiResultResponse<AiPrescriptionAuditResponse>> result =
+        Result<AiResult<AiPrescriptionAuditResponse>> result =
                 nonDegrading.prescriptionAudit(
                         new AiPrescriptionAuditRequest(1L, "感冒", List.of("阿莫西林")), 200L);
 
         assertEquals("SUCCESS", result.getCode());
-        assertFalse(result.getData().degraded());
-        AiPrescriptionAuditResponse data = result.getData().data();
+        assertFalse(result.getData().isDegraded());
+        AiPrescriptionAuditResponse data = result.getData().getData();
         assertEquals(AiRiskLevel.HIGH, data.riskLevel());
         assertEquals(1, data.warnings().size());
         assertTrue(data.passed());
@@ -290,13 +289,13 @@ class DoctorAiServiceImplTest {
                 .thenReturn(CompletableFuture.completedFuture(AiResult.success(aiData)));
 
         DoctorAiService nonDegrading = nonDegradingService();
-        Result<AiResultResponse<AiMedicalRecordGenResponse>> result =
+        Result<AiResult<AiMedicalRecordGenResponse>> result =
                 nonDegrading.generateMedicalRecord(
                         new AiMedicalRecordGenRequest(100L, 1L, "头痛", "无", "无", "感冒"), 200L);
 
         assertEquals("SUCCESS", result.getCode());
-        assertFalse(result.getData().degraded());
-        AiMedicalRecordGenResponse data = result.getData().data();
+        assertFalse(result.getData().isDegraded());
+        AiMedicalRecordGenResponse data = result.getData().getData();
         assertEquals("头痛三天", data.chiefComplaint());
         assertEquals("三天前无明显诱因出现头痛", data.presentIllness());
         assertEquals("高血压五年", data.pastHistory());

@@ -1,6 +1,7 @@
 package com.aimedical.modules.doctor.service;
 
 import com.aimedical.common.result.Result;
+import com.aimedical.modules.ai.api.AiResult;
 import com.aimedical.modules.ai.api.dto.diagnosis.DiagnosisRequest;
 import com.aimedical.modules.ai.api.dto.diagnosis.DiagnosisResponse;
 import com.aimedical.modules.ai.api.dto.examination.ExaminationRecommendRequest;
@@ -11,12 +12,11 @@ import com.aimedical.modules.doctor.dto.request.AiPrescriptionAuditRequest;
 import com.aimedical.modules.doctor.dto.response.AiMedicalRecordGenResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAssistResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAuditResponse;
-import com.aimedical.modules.doctor.dto.response.AiResultResponse;
 
 /**
  * 医生端 AI 服务（带降级包装）。
  *
- * <p>所有方法返回 {@link AiResultResponse}，当 AI 不可用时显式返回降级结果与兜底数据，
+ * <p>所有方法返回 {@link AiResult}，当 AI 不可用时显式返回降级结果与兜底数据，
  * 前端据此展示降级标识 UI。
  *
  * @author AIMedical Team
@@ -24,13 +24,13 @@ import com.aimedical.modules.doctor.dto.response.AiResultResponse;
  */
 public interface DoctorAiService {
 
-    Result<AiResultResponse<DiagnosisResponse>> diagnosis(DiagnosisRequest request, Long doctorUserId);
+    Result<AiResult<DiagnosisResponse>> diagnosis(DiagnosisRequest request, Long doctorUserId);
 
-    Result<AiResultResponse<ExaminationRecommendResponse>> recommendExamination(ExaminationRecommendRequest request, Long doctorUserId);
+    Result<AiResult<ExaminationRecommendResponse>> recommendExamination(ExaminationRecommendRequest request, Long doctorUserId);
 
-    Result<AiResultResponse<AiPrescriptionAssistResponse>> prescriptionAssist(AiPrescriptionAssistRequest request, Long doctorUserId);
+    Result<AiResult<AiPrescriptionAssistResponse>> prescriptionAssist(AiPrescriptionAssistRequest request, Long doctorUserId);
 
-    Result<AiResultResponse<AiPrescriptionAuditResponse>> prescriptionAudit(AiPrescriptionAuditRequest request, Long doctorUserId);
+    Result<AiResult<AiPrescriptionAuditResponse>> prescriptionAudit(AiPrescriptionAuditRequest request, Long doctorUserId);
 
-    Result<AiResultResponse<AiMedicalRecordGenResponse>> generateMedicalRecord(AiMedicalRecordGenRequest request, Long doctorUserId);
+    Result<AiResult<AiMedicalRecordGenResponse>> generateMedicalRecord(AiMedicalRecordGenRequest request, Long doctorUserId);
 }

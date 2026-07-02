@@ -33,6 +33,10 @@ public class AiResult<T> {
         return new AiResult<>(false, null, null, true, fallbackReason);
     }
 
+    public static <T> AiResult<T> degraded(T data, String fallbackReason) {
+        return new AiResult<>(false, data, null, true, fallbackReason);
+    }
+
     public boolean isSuccess() {
         return success;
     }

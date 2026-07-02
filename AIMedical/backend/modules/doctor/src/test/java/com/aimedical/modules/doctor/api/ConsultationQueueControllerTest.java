@@ -48,7 +48,7 @@ class ConsultationQueueControllerTest {
 
     private ConsultationQueueResponse buildResponse() {
         return new ConsultationQueueResponse(1L, 100L, "张三", DOCTOR_ID, "内科",
-                "A001", "WAITING", LocalDateTime.now(), null, null, null);
+                "A001", "WAITING", LocalDateTime.now(), null, null, null, null);
     }
 
     @Test

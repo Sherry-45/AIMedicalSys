@@ -28,7 +28,8 @@ public class ConsultationQueueConverter {
             entity.getRegisteredAt(),
             entity.getCalledAt(),
             entity.getFinishedAt(),
-            entity.getRemark()
+            entity.getRemark(),
+            entity.getRegistrationId()
         );
     }
 }

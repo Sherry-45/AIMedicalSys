@@ -270,6 +270,7 @@ CREATE TABLE `consultation_queue` (
   `patient_id`    BIGINT        NOT NULL,
   `patient_name`  VARCHAR(64)   NOT NULL,
   `doctor_id`     BIGINT        NOT NULL,
+  `registration_id` BIGINT      DEFAULT NULL,
   `department`    VARCHAR(64)   DEFAULT NULL,
   `status`        VARCHAR(20)   NOT NULL DEFAULT 'WAITING',
   `registered_at` TIMESTAMP     DEFAULT NULL,
@@ -282,6 +283,7 @@ CREATE TABLE `consultation_queue` (
   PRIMARY KEY (`id`),
   KEY `idx_doctor_status` (`doctor_id`, `status`),
   KEY `idx_patient_id` (`patient_id`),
+  UNIQUE KEY `uk_queue_registration` (`registration_id`),
   CONSTRAINT `fk_consultation_queue_patient` FOREIGN KEY (`patient_id`) REFERENCES `patient_profile` (`id`),
   CONSTRAINT `fk_consultation_queue_doctor` FOREIGN KEY (`doctor_id`) REFERENCES `sys_user` (`id`)
 );
@@ -410,6 +412,106 @@ CREATE TABLE `condition_entry` (
   PRIMARY KEY (`id`),
   KEY `idx_patient_id` (`patient_id`),
   CONSTRAINT `fk_condition_entry_patient` FOREIGN KEY (`patient_id`) REFERENCES `patient_profile` (`id`)
+);
+
+-- ---------------------------------------------
+-- 19. audit_record  处方审核记录
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `audit_record`;
+CREATE TABLE `audit_record` (
+  `audit_id`              BIGINT        NOT NULL AUTO_INCREMENT,
+  `prescription_id`       VARCHAR(64)   NOT NULL,
+  `prescription_order_id` VARCHAR(64)   DEFAULT NULL,
+  `doctor_id`             VARCHAR(64)   DEFAULT NULL,
+  `patient_id`            VARCHAR(64)   DEFAULT NULL,
+  `audit_time`            TIMESTAMP     DEFAULT NULL,
+  `from_fallback`         BOOLEAN       DEFAULT FALSE,
+  `force_submitted`       BOOLEAN       DEFAULT NULL,
+  `force_submit_time`     TIMESTAMP     DEFAULT NULL,
+  `audit_sequence`        INT           DEFAULT 0,
+  `is_latest`             BOOLEAN       DEFAULT FALSE,
+  `original_prescription`  TEXT         DEFAULT NULL,
+  `risk_level`            VARCHAR(20)   DEFAULT NULL,
+  `ai_result`             TEXT          DEFAULT NULL,
+  `audit_issues`          TEXT          DEFAULT NULL,
+  `version`               BIGINT        DEFAULT 0,
+  `created_at`            TIMESTAMP     DEFAULT NULL,
+  `updated_at`            TIMESTAMP     DEFAULT NULL,
+  `deleted`               BOOLEAN       NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`audit_id`),
+  KEY `idx_audit_prescription_id` (`prescription_id`),
+  KEY `idx_audit_order_is_latest` (`prescription_order_id`, `is_latest`)
+);
+
+-- ---------------------------------------------
+-- 20. dosage_standard  剂量标准
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `dosage_standard`;
+CREATE TABLE `dosage_standard` (
+  `id`                       BIGINT        NOT NULL AUTO_INCREMENT,
+  `drug_code`                VARCHAR(50)   NOT NULL,
+  `route_of_administration`  VARCHAR(20)   NOT NULL,
+  `age_range_start`          INT           DEFAULT NULL,
+  `age_range_end`            INT           DEFAULT NULL,
+  `weight_range_start`       DECIMAL(10,2) DEFAULT NULL,
+  `weight_range_end`         DECIMAL(10,2) DEFAULT NULL,
+  `single_max`               DECIMAL(12,3) NOT NULL,
+  `daily_max`                DECIMAL(12,3) DEFAULT NULL,
+  `unit`                     VARCHAR(20)   NOT NULL,
+  `version`                  BIGINT        DEFAULT 0,
+  `created_at`               TIMESTAMP     DEFAULT NULL,
+  `updated_at`               TIMESTAMP     DEFAULT NULL,
+  `deleted`                  BOOLEAN       NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`),
+  KEY `idx_dosage_drug_route` (`drug_code`, `route_of_administration`)
+);
+
+-- ---------------------------------------------
+-- 21. drug_allergy_mapping  药品过敏映射
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `drug_allergy_mapping`;
+CREATE TABLE `drug_allergy_mapping` (
+  `id`         BIGINT        NOT NULL AUTO_INCREMENT,
+  `drug_code`  VARCHAR(64)   NOT NULL,
+  `allergens`  TEXT          DEFAULT NULL,
+  `version`    BIGINT        DEFAULT 0,
+  `created_at` TIMESTAMP     DEFAULT NULL,
+  `updated_at` TIMESTAMP     DEFAULT NULL,
+  `deleted`    BOOLEAN       NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_drug_allergy_drug_code` (`drug_code`)
+);
+
+-- ---------------------------------------------
+-- 22. drug_composition_dict  药品成分字典
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `drug_composition_dict`;
+CREATE TABLE `drug_composition_dict` (
+  `id`          BIGINT        NOT NULL AUTO_INCREMENT,
+  `drug_code`   VARCHAR(64)   NOT NULL,
+  `ingredients` TEXT          DEFAULT NULL,
+  `version`     BIGINT        DEFAULT 0,
+  `created_at`  TIMESTAMP     DEFAULT NULL,
+  `updated_at`  TIMESTAMP     DEFAULT NULL,
+  `deleted`     BOOLEAN       NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_drug_composition_drug_code` (`drug_code`)
+);
+
+-- ---------------------------------------------
+-- 23. drug_contraindication_mapping  药品禁忌映射
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `drug_contraindication_mapping`;
+CREATE TABLE `drug_contraindication_mapping` (
+  `id`                BIGINT        NOT NULL AUTO_INCREMENT,
+  `drug_code`         VARCHAR(64)   NOT NULL,
+  `contraindications` TEXT          DEFAULT NULL,
+  `version`           BIGINT        DEFAULT 0,
+  `created_at`        TIMESTAMP     DEFAULT NULL,
+  `updated_at`        TIMESTAMP     DEFAULT NULL,
+  `deleted`           BOOLEAN       NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_drug_contra_drug_code` (`drug_code`)
 );
 
 SET REFERENTIAL_INTEGRITY TRUE;

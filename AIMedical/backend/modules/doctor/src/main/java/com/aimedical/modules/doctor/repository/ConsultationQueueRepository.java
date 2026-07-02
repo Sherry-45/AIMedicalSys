@@ -58,4 +58,12 @@ public interface ConsultationQueueRepository extends JpaRepository<ConsultationQ
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT q FROM ConsultationQueueEntity q WHERE q.doctorId = :doctorId AND q.status = :status ORDER BY q.registeredAt ASC")
     List<ConsultationQueueEntity> findByDoctorIdAndStatusForUpdate(@Param("doctorId") Long doctorId, @Param("status") String status);
+
+    /**
+     * 判断指定挂号记录是否已入队（用于 create 幂等校验，防止重复入队）。
+     *
+     * @param registrationId 挂号记录ID
+     * @return 已存在返回 true
+     */
+    boolean existsByRegistrationId(Long registrationId);
 }

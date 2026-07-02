@@ -4,6 +4,7 @@ import com.aimedical.common.base.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -16,9 +17,9 @@ import java.time.LocalDateTime;
  * @version 1.0.0
  */
 @Entity
-@Table(name = "consultation_queue")
+@Table(name = "consultation_queue", uniqueConstraints = @UniqueConstraint(name = "uk_queue_registration", columnNames = "registration_id"))
 @Data
-@EqualsAndHashCode(callSuper = true)
+@EqualsAndHashCode(callSuper = true, exclude = "registrationId")
 public class ConsultationQueueEntity extends BaseEntity {
 
     /** 患者档案ID */
@@ -32,6 +33,10 @@ public class ConsultationQueueEntity extends BaseEntity {
     /** 接诊医生用户ID */
     @Column(name = "doctor_id", nullable = false)
     private Long doctorId;
+
+    /** 关联挂号记录ID（可空，兼容手动创建场景；唯一约束防止重复入队） */
+    @Column(name = "registration_id")
+    private Long registrationId;
 
     /** 科室 */
     @Column(name = "department", length = 64)

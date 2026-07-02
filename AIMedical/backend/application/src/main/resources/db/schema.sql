@@ -433,6 +433,7 @@ CREATE TABLE `consultation_queue` (
   `patient_id`     BIGINT       NOT NULL                COMMENT '患者档案ID',
   `patient_name`   VARCHAR(64)  NOT NULL                COMMENT '患者姓名（冗余展示）',
   `doctor_id`      BIGINT       NOT NULL                COMMENT '接诊医生用户ID',
+  `registration_id` BIGINT      DEFAULT NULL            COMMENT '关联挂号记录ID',
   `department`     VARCHAR(64)  DEFAULT NULL            COMMENT '科室',
   `queue_no`       VARCHAR(32)  NOT NULL                COMMENT '排队号',
   `status`         VARCHAR(20)  NOT NULL DEFAULT 'WAITING' COMMENT '状态 WAITING/CALLED/IN_CONSULTATION/FINISHED/SKIPPED',
@@ -447,6 +448,7 @@ CREATE TABLE `consultation_queue` (
   PRIMARY KEY (`id`),
   KEY `idx_doctor_status` (`doctor_id`, `status`),
   KEY `idx_patient_id` (`patient_id`),
+  UNIQUE KEY `uk_queue_registration` (`registration_id`),
   CONSTRAINT `fk_consultation_queue_patient` FOREIGN KEY (`patient_id`) REFERENCES `patient_profile` (`id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='接诊/叫号队列';
 
@@ -744,5 +746,107 @@ CREATE TABLE `charge_pre_order_item` (
   CONSTRAINT `fk_charge_item_pre_order` FOREIGN KEY (`charge_pre_order_id`) REFERENCES `charge_pre_order` (`id`),
   CONSTRAINT `fk_charge_item_order_item` FOREIGN KEY (`order_item_id`) REFERENCES `medical_order_item` (`id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='收费前置单明细';
+
+-- ---------------------------------------------
+-- 30. audit_record  处方审核记录
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `audit_record`;
+CREATE TABLE `audit_record` (
+  `audit_id`              BIGINT        NOT NULL AUTO_INCREMENT,
+  `prescription_id`       VARCHAR(64)   NOT NULL                COMMENT '处方ID',
+  `prescription_order_id` VARCHAR(64)   DEFAULT NULL            COMMENT '处方订单ID',
+  `doctor_id`             VARCHAR(64)   DEFAULT NULL            COMMENT '开方医生ID',
+  `patient_id`            VARCHAR(64)   DEFAULT NULL            COMMENT '患者ID',
+  `audit_time`            DATETIME      DEFAULT NULL            COMMENT '审核时间',
+  `from_fallback`         TINYINT(1)    DEFAULT 0               COMMENT '是否降级',
+  `force_submitted`       TINYINT(1)    DEFAULT NULL            COMMENT '是否强制提交',
+  `force_submit_time`     DATETIME      DEFAULT NULL            COMMENT '强制提交时间',
+  `audit_sequence`        INT           DEFAULT 0               COMMENT '审核序号',
+  `is_latest`             TINYINT(1)    DEFAULT 0               COMMENT '是否最新',
+  `original_prescription`  TEXT         DEFAULT NULL            COMMENT '原始处方',
+  `risk_level`            VARCHAR(20)   DEFAULT NULL            COMMENT '风险级别 PASS/WARN/BLOCK',
+  `ai_result`             TEXT          DEFAULT NULL            COMMENT 'AI审核结果',
+  `audit_issues`          TEXT          DEFAULT NULL            COMMENT '审核问题列表',
+  `version`               BIGINT        DEFAULT 0               COMMENT '乐观锁版本号',
+  `created_at`            DATETIME      DEFAULT NULL            COMMENT '创建时间',
+  `updated_at`            DATETIME      DEFAULT NULL            COMMENT '更新时间',
+  `deleted`               TINYINT(1)    DEFAULT 0               COMMENT '逻辑删除',
+  PRIMARY KEY (`audit_id`),
+  KEY `idx_audit_prescription_id` (`prescription_id`),
+  KEY `idx_audit_order_is_latest` (`prescription_order_id`, `is_latest`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='处方审核记录';
+
+-- ---------------------------------------------
+-- 31. dosage_standard  剂量标准
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `dosage_standard`;
+CREATE TABLE `dosage_standard` (
+  `id`                       BIGINT        NOT NULL AUTO_INCREMENT,
+  `drug_code`                VARCHAR(50)   NOT NULL                COMMENT '药品编码',
+  `route_of_administration`  VARCHAR(20)   NOT NULL                COMMENT '给药途径',
+  `age_range_start`          INT           DEFAULT NULL            COMMENT '年龄范围起',
+  `age_range_end`            INT           DEFAULT NULL            COMMENT '年龄范围止',
+  `weight_range_start`       DECIMAL(10,2) DEFAULT NULL            COMMENT '体重范围起',
+  `weight_range_end`         DECIMAL(10,2) DEFAULT NULL            COMMENT '体重范围止',
+  `single_max`               DECIMAL(12,3) NOT NULL                COMMENT '单次最大量',
+  `daily_max`                DECIMAL(12,3) DEFAULT NULL            COMMENT '每日最大量',
+  `unit`                     VARCHAR(20)   NOT NULL                COMMENT '单位',
+  `version`                  BIGINT        DEFAULT 0               COMMENT '乐观锁版本号',
+  `created_at`               DATETIME      DEFAULT NULL            COMMENT '创建时间',
+  `updated_at`               DATETIME      DEFAULT NULL            COMMENT '更新时间',
+  `deleted`                  TINYINT(1)    DEFAULT 0               COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_dosage_drug_route` (`drug_code`, `route_of_administration`),
+  KEY `idx_dosage_drug_route_age_weight` (`drug_code`, `route_of_administration`, `age_range_start`, `age_range_end`, `weight_range_start`, `weight_range_end`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='剂量标准';
+
+-- ---------------------------------------------
+-- 32. drug_allergy_mapping  药品过敏映射
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `drug_allergy_mapping`;
+CREATE TABLE `drug_allergy_mapping` (
+  `id`         BIGINT        NOT NULL AUTO_INCREMENT,
+  `drug_code`  VARCHAR(64)   NOT NULL                COMMENT '药品编码',
+  `allergens`  TEXT          DEFAULT NULL            COMMENT '过敏原列表(JSON)',
+  `version`    BIGINT        DEFAULT 0               COMMENT '乐观锁版本号',
+  `created_at` DATETIME      DEFAULT NULL            COMMENT '创建时间',
+  `updated_at` DATETIME      DEFAULT NULL            COMMENT '更新时间',
+  `deleted`    TINYINT(1)    DEFAULT 0               COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_drug_allergy_drug_code` (`drug_code`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='药品过敏映射';
+
+-- ---------------------------------------------
+-- 33. drug_composition_dict  药品成分字典
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `drug_composition_dict`;
+CREATE TABLE `drug_composition_dict` (
+  `id`          BIGINT        NOT NULL AUTO_INCREMENT,
+  `drug_code`   VARCHAR(64)   NOT NULL                COMMENT '药品编码',
+  `ingredients` TEXT          DEFAULT NULL            COMMENT '成分列表(JSON)',
+  `version`     BIGINT        DEFAULT 0               COMMENT '乐观锁版本号',
+  `created_at`  DATETIME      DEFAULT NULL            COMMENT '创建时间',
+  `updated_at`  DATETIME      DEFAULT NULL            COMMENT '更新时间',
+  `deleted`     TINYINT(1)    DEFAULT 0               COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_drug_composition_drug_code` (`drug_code`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='药品成分字典';
+
+-- ---------------------------------------------
+-- 34. drug_contraindication_mapping  药品禁忌映射
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `drug_contraindication_mapping`;
+CREATE TABLE `drug_contraindication_mapping` (
+  `id`               BIGINT        NOT NULL AUTO_INCREMENT,
+  `drug_code`        VARCHAR(64)   NOT NULL                COMMENT '药品编码',
+  `contraindications` TEXT         DEFAULT NULL            COMMENT '禁忌列表(JSON)',
+  `version`           BIGINT       DEFAULT 0               COMMENT '乐观锁版本号',
+  `created_at`        DATETIME     DEFAULT NULL            COMMENT '创建时间',
+  `updated_at`        DATETIME     DEFAULT NULL            COMMENT '更新时间',
+  `deleted`           TINYINT(1)   DEFAULT 0               COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_drug_contra_drug_code` (`drug_code`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='药品禁忌映射';
+
 SET FOREIGN_KEY_CHECKS = 1;
 SET REFERENTIAL_INTEGRITY TRUE;

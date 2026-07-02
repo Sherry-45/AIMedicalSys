@@ -1,6 +1,7 @@
 package com.aimedical.modules.doctor.api;
 
 import com.aimedical.common.result.Result;
+import com.aimedical.modules.ai.api.AiResult;
 import com.aimedical.modules.ai.api.dto.diagnosis.DiagnosisRequest;
 import com.aimedical.modules.ai.api.dto.diagnosis.DiagnosisResponse;
 import com.aimedical.modules.ai.api.dto.examination.ExaminationRecommendRequest;
@@ -12,7 +13,6 @@ import com.aimedical.modules.doctor.dto.request.AiPrescriptionAuditRequest;
 import com.aimedical.modules.doctor.dto.response.AiMedicalRecordGenResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAssistResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAuditResponse;
-import com.aimedical.modules.doctor.dto.response.AiResultResponse;
 import com.aimedical.modules.doctor.entity.AiRiskLevel;
 import com.aimedical.modules.doctor.service.DoctorAiService;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,9 +63,9 @@ class DoctorAiControllerTest {
         response.setPossibleDiagnoses(List.of());
         response.setSummary("建议");
         when(doctorAiService.diagnosis(request, DOCTOR_ID))
-                .thenReturn(Result.success(AiResultResponse.ok(response)));
+                .thenReturn(Result.success(AiResult.success(response)));
 
-        Result<AiResultResponse<DiagnosisResponse>> result = controller.diagnosis(request);
+        Result<AiResult<DiagnosisResponse>> result = controller.diagnosis(request);
 
         assertEquals("SUCCESS", result.getCode());
         verify(doctorAiService).diagnosis(request, DOCTOR_ID);
@@ -78,9 +78,9 @@ class DoctorAiControllerTest {
         ExaminationRecommendResponse response = new ExaminationRecommendResponse();
         response.setItems(List.of());
         when(doctorAiService.recommendExamination(request, DOCTOR_ID))
-                .thenReturn(Result.success(AiResultResponse.ok(response)));
+                .thenReturn(Result.success(AiResult.success(response)));
 
-        Result<AiResultResponse<ExaminationRecommendResponse>> result = controller.recommendExamination(request);
+        Result<AiResult<ExaminationRecommendResponse>> result = controller.recommendExamination(request);
 
         assertEquals("SUCCESS", result.getCode());
         verify(doctorAiService).recommendExamination(request, DOCTOR_ID);
@@ -91,9 +91,9 @@ class DoctorAiControllerTest {
         AiPrescriptionAssistRequest request = new AiPrescriptionAssistRequest(100L, "感冒", "头痛");
         when(currentUser.getUserId()).thenReturn(DOCTOR_ID);
         when(doctorAiService.prescriptionAssist(request, DOCTOR_ID))
-                .thenReturn(Result.success(AiResultResponse.ok(new AiPrescriptionAssistResponse(List.of(), "建议"))));
+                .thenReturn(Result.success(AiResult.success(new AiPrescriptionAssistResponse(List.of(), "建议"))));
 
-        Result<AiResultResponse<AiPrescriptionAssistResponse>> result = controller.prescriptionAssist(request);
+        Result<AiResult<AiPrescriptionAssistResponse>> result = controller.prescriptionAssist(request);
 
         assertEquals("SUCCESS", result.getCode());
         verify(doctorAiService).prescriptionAssist(request, DOCTOR_ID);
@@ -104,9 +104,9 @@ class DoctorAiControllerTest {
         AiPrescriptionAuditRequest request = new AiPrescriptionAuditRequest(1L, "感冒", List.of("阿莫西林"));
         when(currentUser.getUserId()).thenReturn(DOCTOR_ID);
         when(doctorAiService.prescriptionAudit(request, DOCTOR_ID))
-                .thenReturn(Result.success(AiResultResponse.ok(new AiPrescriptionAuditResponse(AiRiskLevel.LOW, List.of(), true))));
+                .thenReturn(Result.success(AiResult.success(new AiPrescriptionAuditResponse(AiRiskLevel.LOW, List.of(), true))));
 
-        Result<AiResultResponse<AiPrescriptionAuditResponse>> result = controller.prescriptionAudit(request);
+        Result<AiResult<AiPrescriptionAuditResponse>> result = controller.prescriptionAudit(request);
 
         assertEquals("SUCCESS", result.getCode());
         verify(doctorAiService).prescriptionAudit(request, DOCTOR_ID);
@@ -117,9 +117,9 @@ class DoctorAiControllerTest {
         AiMedicalRecordGenRequest request = new AiMedicalRecordGenRequest(100L, 1L, "头痛", "无", "无", "感冒");
         when(currentUser.getUserId()).thenReturn(DOCTOR_ID);
         when(doctorAiService.generateMedicalRecord(request, DOCTOR_ID))
-                .thenReturn(Result.success(AiResultResponse.ok(new AiMedicalRecordGenResponse("", "", "", "", ""))));
+                .thenReturn(Result.success(AiResult.success(new AiMedicalRecordGenResponse("", "", "", "", ""))));
 
-        Result<AiResultResponse<AiMedicalRecordGenResponse>> result = controller.generateMedicalRecord(request);
+        Result<AiResult<AiMedicalRecordGenResponse>> result = controller.generateMedicalRecord(request);
 
         assertEquals("SUCCESS", result.getCode());
         verify(doctorAiService).generateMedicalRecord(request, DOCTOR_ID);

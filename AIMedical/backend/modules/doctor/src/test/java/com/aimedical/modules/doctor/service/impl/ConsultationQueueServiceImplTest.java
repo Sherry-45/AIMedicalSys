@@ -48,7 +48,7 @@ class ConsultationQueueServiceImplTest {
 
     private ConsultationQueueResponse buildResponse(Long id) {
         return new ConsultationQueueResponse(id, 100L, "张三", 200L, "内科",
-                "A001", "WAITING", LocalDateTime.now(), null, null, null);
+                "A001", "WAITING", LocalDateTime.now(), null, null, null, null);
     }
 
     @Test
@@ -275,6 +275,34 @@ class ConsultationQueueServiceImplTest {
 
         assertEquals("SUCCESS", result.getCode());
         assertEquals(ConsultationStatus.SKIPPED.getCode(), entity.getStatus());
+    }
+
+    @Test
+    void create_shouldCreateQueueEntryWhenRegistrationIdNotExists() {
+        ConsultationQueueEntity entity = buildEntity(1L, ConsultationStatus.WAITING.getCode(), 200L);
+        entity.setRegistrationId(500L);
+        ConsultationQueueResponse response = buildResponse(1L);
+        when(queueRepository.existsByRegistrationId(500L)).thenReturn(false);
+        when(queueRepository.save(any(ConsultationQueueEntity.class))).thenReturn(entity);
+        when(converter.toResponse(entity)).thenReturn(response);
+
+        ConsultationQueueResponse result = service.create(500L, 100L, "张三", 200L, "内科", "A001");
+
+        assertNotNull(result);
+        assertEquals("WAITING", result.status());
+        verify(queueRepository).existsByRegistrationId(500L);
+        verify(queueRepository).save(any(ConsultationQueueEntity.class));
+    }
+
+    @Test
+    void create_shouldReturnNullAndSkipWhenRegistrationIdAlreadyExists() {
+        when(queueRepository.existsByRegistrationId(500L)).thenReturn(true);
+
+        ConsultationQueueResponse result = service.create(500L, 100L, "张三", 200L, "内科", "A001");
+
+        assertNull(result);
+        verify(queueRepository).existsByRegistrationId(500L);
+        verify(queueRepository, never()).save(any());
     }
 
     private static <T> T eq(T value) {

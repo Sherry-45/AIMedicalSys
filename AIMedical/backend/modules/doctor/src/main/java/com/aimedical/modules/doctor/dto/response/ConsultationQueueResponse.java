@@ -19,6 +19,7 @@ public record ConsultationQueueResponse(
     LocalDateTime registeredAt,
     LocalDateTime calledAt,
     LocalDateTime finishedAt,
-    String remark
+    String remark,
+    Long registrationId
 ) {
 }

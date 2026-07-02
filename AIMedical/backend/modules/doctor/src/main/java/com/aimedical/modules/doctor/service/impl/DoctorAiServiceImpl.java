@@ -16,7 +16,6 @@ import com.aimedical.modules.doctor.dto.request.AiPrescriptionAuditRequest;
 import com.aimedical.modules.doctor.dto.response.AiMedicalRecordGenResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAssistResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAuditResponse;
-import com.aimedical.modules.doctor.dto.response.AiResultResponse;
 import com.aimedical.modules.doctor.entity.AiRiskLevel;
 import com.aimedical.modules.doctor.service.DoctorAiService;
 import org.slf4j.Logger;
@@ -34,7 +33,7 @@ import java.util.List;
  *   <li>当 {@code ai.doctor.mock-degrade=true}（默认）时，直接返回降级结果与兜底数据，
  *       用于演示 AI 不可用时的降级 UI 路径</li>
  *   <li>当 {@code ai.doctor.mock-degrade=false} 时，实际调用 {@link AiService}；
- *       调用异常或返回降级结果时，统一包装为 {@link AiResultResponse#degraded}</li>
+ *       调用异常或返回降级结果时，统一包装为 {@link AiResult#degraded}</li>
  * </ul>
  *
  * @author AIMedical Team
@@ -55,7 +54,7 @@ public class DoctorAiServiceImpl implements DoctorAiService {
     }
 
     @Override
-    public Result<AiResultResponse<DiagnosisResponse>> diagnosis(DiagnosisRequest request, Long doctorUserId) {
+    public Result<AiResult<DiagnosisResponse>> diagnosis(DiagnosisRequest request, Long doctorUserId) {
         if (mockDegrade) {
             return Result.success(degradedDiagnosis());
         }
@@ -68,7 +67,7 @@ public class DoctorAiServiceImpl implements DoctorAiService {
             if (aiData == null) {
                 return Result.success(degradedDiagnosis());
             }
-            return Result.success(AiResultResponse.ok(aiData));
+            return Result.success(AiResult.success(aiData));
         } catch (Exception e) {
             log.warn("AI diagnosis 调用异常，降级处理", e);
             return Result.success(degradedDiagnosis());
@@ -76,7 +75,7 @@ public class DoctorAiServiceImpl implements DoctorAiService {
     }
 
     @Override
-    public Result<AiResultResponse<ExaminationRecommendResponse>> recommendExamination(ExaminationRecommendRequest request, Long doctorUserId) {
+    public Result<AiResult<ExaminationRecommendResponse>> recommendExamination(ExaminationRecommendRequest request, Long doctorUserId) {
         if (mockDegrade) {
             return Result.success(degradedExamination());
         }
@@ -89,7 +88,7 @@ public class DoctorAiServiceImpl implements DoctorAiService {
             if (aiData == null) {
                 return Result.success(degradedExamination());
             }
-            return Result.success(AiResultResponse.ok(aiData));
+            return Result.success(AiResult.success(aiData));
         } catch (Exception e) {
             log.warn("AI recommendExamination 调用异常，降级处理", e);
             return Result.success(degradedExamination());
@@ -97,7 +96,7 @@ public class DoctorAiServiceImpl implements DoctorAiService {
     }
 
     @Override
-    public Result<AiResultResponse<AiPrescriptionAssistResponse>> prescriptionAssist(AiPrescriptionAssistRequest request, Long doctorUserId) {
+    public Result<AiResult<AiPrescriptionAssistResponse>> prescriptionAssist(AiPrescriptionAssistRequest request, Long doctorUserId) {
         if (mockDegrade) {
             return Result.success(degradedPrescriptionAssist());
         }
@@ -116,7 +115,7 @@ public class DoctorAiServiceImpl implements DoctorAiService {
             }
             AiPrescriptionAssistResponse data = new AiPrescriptionAssistResponse(List.of(),
                     aiData.getPrescriptionDraft() != null ? aiData.getPrescriptionDraft() : "");
-            return Result.success(AiResultResponse.ok(data));
+            return Result.success(AiResult.success(data));
         } catch (Exception e) {
             log.warn("AI prescriptionAssist 调用异常，降级处理", e);
             return Result.success(degradedPrescriptionAssist());
@@ -124,7 +123,7 @@ public class DoctorAiServiceImpl implements DoctorAiService {
     }
 
     @Override
-    public Result<AiResultResponse<AiPrescriptionAuditResponse>> prescriptionAudit(AiPrescriptionAuditRequest request, Long doctorUserId) {
+    public Result<AiResult<AiPrescriptionAuditResponse>> prescriptionAudit(AiPrescriptionAuditRequest request, Long doctorUserId) {
         if (mockDegrade) {
             return Result.success(degradedPrescriptionAudit());
         }
@@ -149,7 +148,7 @@ public class DoctorAiServiceImpl implements DoctorAiService {
                     parseRiskLevel(aiData.getRiskLevel()),
                     warnings,
                     !aiData.isFromFallback());
-            return Result.success(AiResultResponse.ok(data));
+            return Result.success(AiResult.success(data));
         } catch (Exception e) {
             log.warn("AI prescriptionCheck 调用异常，降级处理", e);
             return Result.success(degradedPrescriptionAudit());
@@ -157,7 +156,7 @@ public class DoctorAiServiceImpl implements DoctorAiService {
     }
 
     @Override
-    public Result<AiResultResponse<AiMedicalRecordGenResponse>> generateMedicalRecord(AiMedicalRecordGenRequest request, Long doctorUserId) {
+    public Result<AiResult<AiMedicalRecordGenResponse>> generateMedicalRecord(AiMedicalRecordGenRequest request, Long doctorUserId) {
         if (mockDegrade) {
             return Result.success(degradedMedicalRecordGen());
         }
@@ -185,7 +184,7 @@ public class DoctorAiServiceImpl implements DoctorAiService {
                     nullToEmpty(aiData.getPastHistory()),
                     nullToEmpty(aiData.getPreliminaryDiagnosis()),
                     nullToEmpty(aiData.getTreatmentPlan()));
-            return Result.success(AiResultResponse.ok(data));
+            return Result.success(AiResult.success(data));
         } catch (Exception e) {
             log.warn("AI generateMedicalRecord 调用异常，降级处理", e);
             return Result.success(degradedMedicalRecordGen());
@@ -216,16 +215,16 @@ public class DoctorAiServiceImpl implements DoctorAiService {
 
     // ---------- 降级兜底数据 ----------
 
-    private AiResultResponse<DiagnosisResponse> degradedDiagnosis() {
+    private AiResult<DiagnosisResponse> degradedDiagnosis() {
         DiagnosisResponse fallback = new DiagnosisResponse();
         fallback.setPossibleDiagnoses(List.of());
         fallback.setSummary("AI 诊断服务不可用，请医生根据主诉、现病史及查体进行人工诊断");
-        return AiResultResponse.degraded(
+        return AiResult.degraded(
                 fallback,
                 "AI 诊断服务不可用，请医生根据主诉、现病史及查体进行人工诊断");
     }
 
-    private AiResultResponse<ExaminationRecommendResponse> degradedExamination() {
+    private AiResult<ExaminationRecommendResponse> degradedExamination() {
         // 兜底：提供常见检查项建议，避免完全无内容
         List<ExaminationRecommendResponse.ExaminationItem> fallbackItems = List.of(
                 new ExaminationRecommendResponse.ExaminationItem("血常规", "检验", "通用基础检查"),
@@ -235,27 +234,27 @@ public class DoctorAiServiceImpl implements DoctorAiService {
         );
         ExaminationRecommendResponse fallback = new ExaminationRecommendResponse();
         fallback.setItems(fallbackItems);
-        return AiResultResponse.degraded(
+        return AiResult.degraded(
                 fallback,
                 "AI 检查推荐服务不可用，已返回通用检查项建议，请医生结合临床判断");
     }
 
-    private AiResultResponse<AiPrescriptionAssistResponse> degradedPrescriptionAssist() {
-        return AiResultResponse.degraded(
+    private AiResult<AiPrescriptionAssistResponse> degradedPrescriptionAssist() {
+        return AiResult.degraded(
                 new AiPrescriptionAssistResponse(List.of(), "AI 辅助开方服务不可用，请医生根据诊疗规范与药品说明书手动开具处方"),
                 "AI 辅助开方服务不可用，请医生根据诊疗规范与药品说明书手动开具处方");
     }
 
-    private AiResultResponse<AiPrescriptionAuditResponse> degradedPrescriptionAudit() {
-        return AiResultResponse.degraded(
+    private AiResult<AiPrescriptionAuditResponse> degradedPrescriptionAudit() {
+        return AiResult.degraded(
                 new AiPrescriptionAuditResponse(null,
                         List.of("AI 处方审核服务不可用，请药师进行人工审核，重点关注过敏史、配伍禁忌与用法用量"),
                         false),
                 "AI 处方审核服务不可用，请药师进行人工审核，重点关注过敏史、配伍禁忌与用法用量");
     }
 
-    private AiResultResponse<AiMedicalRecordGenResponse> degradedMedicalRecordGen() {
-        return AiResultResponse.degraded(
+    private AiResult<AiMedicalRecordGenResponse> degradedMedicalRecordGen() {
+        return AiResult.degraded(
                 new AiMedicalRecordGenResponse("", "", "", "", ""),
                 "AI 病历生成服务不可用，请医生使用病历模板手动录入病历内容");
     }

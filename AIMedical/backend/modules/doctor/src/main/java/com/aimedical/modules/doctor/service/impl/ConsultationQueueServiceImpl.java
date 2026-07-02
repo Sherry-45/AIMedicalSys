@@ -40,6 +40,27 @@ public class ConsultationQueueServiceImpl implements ConsultationQueueService {
     }
 
     @Override
+    @Transactional
+    public ConsultationQueueResponse create(Long registrationId, Long patientId, String patientName,
+                                            Long doctorId, String department, String queueNo) {
+        // 幂等校验：同一挂号记录已入队则跳过，防止事件重投/并发导致重复入队
+        if (registrationId != null && queueRepository.existsByRegistrationId(registrationId)) {
+            return null;
+        }
+        ConsultationQueueEntity entity = new ConsultationQueueEntity();
+        entity.setPatientId(patientId);
+        entity.setPatientName(patientName);
+        entity.setDoctorId(doctorId);
+        entity.setDepartment(department);
+        entity.setQueueNo(queueNo);
+        entity.setRegistrationId(registrationId);
+        entity.setStatus(ConsultationStatus.WAITING.getCode());
+        entity.setRegisteredAt(LocalDateTime.now());
+        ConsultationQueueEntity saved = queueRepository.save(entity);
+        return converter.toResponse(saved);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Result<List<ConsultationQueueResponse>> listMyQueue(Long doctorUserId) {
         List<ConsultationQueueResponse> list = queueRepository

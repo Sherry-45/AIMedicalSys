@@ -22,6 +22,10 @@
         <module>modules/patient</module>
         <module>modules/doctor</module>
         <module>modules/admin</module>
+        <module>modules/registration</module>
+        <module>modules/medical-order</module>
+        <module>modules/consultation</module>
+        <module>modules/prescription</module>
         <module>application</module>
         <module>integration</module>
     </modules>
@@ -30,15 +34,56 @@
         <java.version>17</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
+        <maven.compiler.release>${java.version}</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <springdoc.version>2.5.0</springdoc.version>
         <h2.version>2.2.224</h2.version>
-        <jjwt.version>0.12.5</jjwt.version>
+        <lombok.version>1.18.32</lombok.version>
+        <jjwt.version>0.12.6</jjwt.version>
+        <!-- ===== CI 门禁阈值（覆盖率/契约）===== -->
+        <jacoco.min.line.coverage>0.50</jacoco.min.line.coverage>
+        <jacoco.min.branch.coverage>0.40</jacoco.min.branch.coverage>
+        <jacoco.version>0.8.12</jacoco.version>
+        <!-- 父 pom 无源码, 默认跳过 jacoco prepare-agent 与 check; 子模块覆盖为 false 启用 -->
+        <jacoco.skip>true</jacoco.skip>
+        <jacoco.skip.check>false</jacoco.skip.check>
+        <!-- 覆盖 Spring Boot 3.2.5 默认的 Lombok 1.18.30；
+             1.18.30 不支持 JDK 26（运行环境），导致 @Getter/@Data 等注解处理失效。
+             1.18.46 新增 JDK 26 支持 (#4019)。 -->
+        <lombok.version>1.18.46</lombok.version>
+        <!-- 覆盖 Spring Boot 3.2.5 默认的 ByteBuddy 1.14.13；
+             1.14.13 仅支持到 JDK 22，本地 JDK 26 上 Mockito 运行时报错
+             (ByteBuddy 无法处理 class file version 70) → 测试 errors → JaCoCo 覆盖率不足 → check 失败。
+             1.18.8 内置 ASM 9.9 支持 Java 26，兼容 JDK 8~25+。CI 用 JDK 17 不受影响。 -->
+        <byte-buddy.version>1.18.8</byte-buddy.version>
     </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
 
     <dependencyManagement>
         <dependencies>
-            <!-- Internal modules -->
+            <!-- Internal modules (alphabetical by artifactId) -->
+            <dependency>
+                <groupId>com.aimedical</groupId>
+                <artifactId>ai-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.aimedical</groupId>
+                <artifactId>ai-impl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.aimedical</groupId>
+                <artifactId>application</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.aimedical</groupId>
                 <artifactId>common</artifactId>
@@ -56,17 +101,17 @@
             </dependency>
             <dependency>
                 <groupId>com.aimedical</groupId>
-                <artifactId>ai-api</artifactId>
+                <artifactId>medical-order</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.aimedical</groupId>
-                <artifactId>ai-impl</artifactId>
+                <artifactId>patient</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.aimedical</groupId>
-                <artifactId>application</artifactId>
+                <artifactId>registration</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!-- External libraries -->
@@ -103,6 +148,85 @@
 
     <build>
         <plugins>
+            <!-- ===== CI 门禁 1: JaCoCo 覆盖率阈值 ===== -->
+            <!--
+                prepare-agent 在 test 阶段前注入 agent; check 在 verify 阶段校验阈值,
+                不达标时 BUILD FAILURE 拦截覆盖率下滑.
+                父 pom 无源码, jacoco.skip=true 同时跳过 prepare-agent 与 check;
+                子模块通过 <properties><jacoco.skip>false</jacoco.skip></properties> 启用.
+            -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <configuration>
+                    <skip>${jacoco.skip}</skip>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>jacoco-prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>jacoco-report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>jacoco-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${jacoco.skip.check}</skip>
+                            <haltOnFailure>true</haltOnFailure>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>${jacoco.min.line.coverage}</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>${jacoco.min.branch.coverage}</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- 显式声明 Lombok 注解处理器路径。
+                 JDK 26 上 javac 不再自动把 classpath 上的 JAR 作为注解处理器，
+                 必须通过 annotationProcessorPaths 显式声明，否则 @Getter/@Data/@AllArgsConstructor
+                 等注解不会被处理，导致编译期 "未覆盖抽象方法 / 构造器参数不匹配" 错误。
+                 ${lombok.version}=1.18.46 提供 JDK 26 支持。 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                    <release>${maven.compiler.release}</release>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -110,9 +234,34 @@
                     <ignoredUnusedDeclaredDependencies>
                         <ignoredUnusedDeclaredDependency>com.aimedical:ai-api</ignoredUnusedDeclaredDependency>
                         <ignoredUnusedDeclaredDependency>com.aimedical:common-module-api</ignoredUnusedDeclaredDependency>
+                        <ignoredUnusedDeclaredDependency>com.aimedical:medical-order</ignoredUnusedDeclaredDependency>
                     </ignoredUnusedDeclaredDependencies>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>@{argLine} -Dnet.bytebuddy.experimental=true</argLine>
                 </configuration>
             </plugin>
         </plugins>
     </build>
+
+    <!-- ===== 本地开发 Profile ===== -->
+    <!-- 当 CI 环境变量不存在时（本地开发），自动激活，跳过 JaCoCo 覆盖率检查 -->
+    <!-- CI 环境（GitHub Actions 设置 CI=true）不会激活此 Profile，子模块的 jacoco.skip.check=false 生效 -->
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <activation>
+                <property>
+                    <name>!env.CI</name>
+                </property>
+            </activation>
+            <properties>
+                <jacoco.skip.check>true</jacoco.skip.check>
+            </properties>
+        </profile>
+    </profiles>
 </project>

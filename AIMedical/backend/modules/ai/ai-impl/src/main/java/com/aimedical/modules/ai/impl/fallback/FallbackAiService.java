@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
 import com.aimedical.modules.ai.api.AiResult;
@@ -39,6 +40,25 @@ import com.aimedical.modules.ai.api.dto.schedule.ScheduleResponse;
 import com.aimedical.modules.ai.api.dto.triage.TriageRequest;
 import com.aimedical.modules.ai.api.dto.triage.TriageResponse;
 
+/**
+ * AI 服务降级包装实现。
+ *
+ * <p>采用 {@code @Primary} + 委托模式：注入所有非自身的 {@link AiService} 实现，
+ * 取第一个作为主委托；调用后经 {@link DegradationStrategy} 链判定是否降级。
+ *
+ * <p>设计说明（T11）：
+ * <ul>
+ *   <li>{@code @Primary} 确保 DoctorAiServiceImpl 注入的是本类而非具体实现，
+ *       形成双重锁定降级（本类策略判定 + DoctorAiServiceImpl 兜底捕获）。</li>
+ *   <li>后续引入真实 AI 实现时，只需新增 {@code @Service} AiService Bean，
+ *       本类自动将其纳入 delegates，无需修改 DoctorAiServiceImpl。</li>
+ *   <li>当前 delegates 仅取 {@code get(0)}，多实现并存时的路由策略待扩展。</li>
+ * </ul>
+ *
+ * @author AIMedical Team
+ * @version 1.0.0
+ */
+@Primary
 @Service
 public class FallbackAiService implements AiService {
 
@@ -63,13 +83,36 @@ public class FallbackAiService implements AiService {
         return CompletableFuture.completedFuture(AiResult.degraded("No available AiService delegate"));
     }
 
+    private AiService selectDelegate(DegradationContext context) {
+        for (AiService delegate : delegates) {
+            boolean skip = false;
+            for (DegradationStrategy strategy : strategies) {
+                if (strategy.shouldDegrade(context)) {
+                    skip = true;
+                    break;
+                }
+            }
+            if (!skip) {
+                return delegate;
+            }
+        }
+        return null;
+    }
+
     @Override
     public CompletableFuture<AiResult<TriageResponse>> triage(TriageRequest request) {
         if (delegates.isEmpty()) {
             return handleEmptyDelegates();
         }
-        return delegates.get(0).triage(request)
-                .thenApply(this::applyStrategies);
+        DegradationContext context = new DegradationContext();
+        context.setServiceName("triage");
+        context.setOperationName("triage");
+        AiService delegate = selectDelegate(context);
+        if (delegate == null) {
+            return handleEmptyDelegates();
+        }
+        return delegate.triage(request)
+                .thenApply(result -> applyStrategies(result, context));
     }
 
     @Override
@@ -77,8 +120,15 @@ public class FallbackAiService implements AiService {
         if (delegates.isEmpty()) {
             return handleEmptyDelegates();
         }
-        return delegates.get(0).diagnosis(request)
-                .thenApply(this::applyStrategies);
+        DegradationContext context = new DegradationContext();
+        context.setServiceName("diagnosis");
+        context.setOperationName("diagnosis");
+        AiService delegate = selectDelegate(context);
+        if (delegate == null) {
+            return handleEmptyDelegates();
+        }
+        return delegate.diagnosis(request)
+                .thenApply(result -> applyStrategies(result, context));
     }
 
     @Override
@@ -86,8 +136,15 @@ public class FallbackAiService implements AiService {
         if (delegates.isEmpty()) {
             return handleEmptyDelegates();
         }
-        return delegates.get(0).prescriptionCheck(request)
-                .thenApply(this::applyStrategies);
+        DegradationContext context = new DegradationContext();
+        context.setServiceName("prescription");
+        context.setOperationName("prescriptionCheck");
+        AiService delegate = selectDelegate(context);
+        if (delegate == null) {
+            return handleEmptyDelegates();
+        }
+        return delegate.prescriptionCheck(request)
+                .thenApply(result -> applyStrategies(result, context));
     }
 
     @Override
@@ -95,8 +152,15 @@ public class FallbackAiService implements AiService {
         if (delegates.isEmpty()) {
             return handleEmptyDelegates();
         }
-        return delegates.get(0).generateMedicalRecord(request)
-                .thenApply(this::applyStrategies);
+        DegradationContext context = new DegradationContext();
+        context.setServiceName("medical-record");
+        context.setOperationName("generateMedicalRecord");
+        AiService delegate = selectDelegate(context);
+        if (delegate == null) {
+            return handleEmptyDelegates();
+        }
+        return delegate.generateMedicalRecord(request)
+                .thenApply(result -> applyStrategies(result, context));
     }
 
     @Override
@@ -104,8 +168,15 @@ public class FallbackAiService implements AiService {
         if (delegates.isEmpty()) {
             return handleEmptyDelegates();
         }
-        return delegates.get(0).analysisReportForInspection(request)
-                .thenApply(this::applyStrategies);
+        DegradationContext context = new DegradationContext();
+        context.setServiceName("inspection");
+        context.setOperationName("analysisReportForInspection");
+        AiService delegate = selectDelegate(context);
+        if (delegate == null) {
+            return handleEmptyDelegates();
+        }
+        return delegate.analysisReportForInspection(request)
+                .thenApply(result -> applyStrategies(result, context));
     }
 
     @Override
@@ -113,8 +184,15 @@ public class FallbackAiService implements AiService {
         if (delegates.isEmpty()) {
             return handleEmptyDelegates();
         }
-        return delegates.get(0).analysisReportForLabTest(request)
-                .thenApply(this::applyStrategies);
+        DegradationContext context = new DegradationContext();
+        context.setServiceName("lab-test");
+        context.setOperationName("analysisReportForLabTest");
+        AiService delegate = selectDelegate(context);
+        if (delegate == null) {
+            return handleEmptyDelegates();
+        }
+        return delegate.analysisReportForLabTest(request)
+                .thenApply(result -> applyStrategies(result, context));
     }
 
     @Override
@@ -122,8 +200,15 @@ public class FallbackAiService implements AiService {
         if (delegates.isEmpty()) {
             return handleEmptyDelegates();
         }
-        return delegates.get(0).imageAnalysis(request)
-                .thenApply(this::applyStrategies);
+        DegradationContext context = new DegradationContext();
+        context.setServiceName("image");
+        context.setOperationName("imageAnalysis");
+        AiService delegate = selectDelegate(context);
+        if (delegate == null) {
+            return handleEmptyDelegates();
+        }
+        return delegate.imageAnalysis(request)
+                .thenApply(result -> applyStrategies(result, context));
     }
 
     @Override
@@ -131,8 +216,15 @@ public class FallbackAiService implements AiService {
         if (delegates.isEmpty()) {
             return handleEmptyDelegates();
         }
-        return delegates.get(0).knowledgeBaseQuery(request)
-                .thenApply(this::applyStrategies);
+        DegradationContext context = new DegradationContext();
+        context.setServiceName("kb");
+        context.setOperationName("knowledgeBaseQuery");
+        AiService delegate = selectDelegate(context);
+        if (delegate == null) {
+            return handleEmptyDelegates();
+        }
+        return delegate.knowledgeBaseQuery(request)
+                .thenApply(result -> applyStrategies(result, context));
     }
 
     @Override
@@ -140,8 +232,15 @@ public class FallbackAiService implements AiService {
         if (delegates.isEmpty()) {
             return handleEmptyDelegates();
         }
-        return delegates.get(0).recommendExamination(request)
-                .thenApply(this::applyStrategies);
+        DegradationContext context = new DegradationContext();
+        context.setServiceName("examination");
+        context.setOperationName("recommendExamination");
+        AiService delegate = selectDelegate(context);
+        if (delegate == null) {
+            return handleEmptyDelegates();
+        }
+        return delegate.recommendExamination(request)
+                .thenApply(result -> applyStrategies(result, context));
     }
 
     @Override
@@ -149,8 +248,15 @@ public class FallbackAiService implements AiService {
         if (delegates.isEmpty()) {
             return handleEmptyDelegates();
         }
-        return delegates.get(0).prescriptionAssist(request)
-                .thenApply(this::applyStrategies);
+        DegradationContext context = new DegradationContext();
+        context.setServiceName("prescription");
+        context.setOperationName("prescriptionAssist");
+        AiService delegate = selectDelegate(context);
+        if (delegate == null) {
+            return handleEmptyDelegates();
+        }
+        return delegate.prescriptionAssist(request)
+                .thenApply(result -> applyStrategies(result, context));
     }
 
     @Override
@@ -158,8 +264,15 @@ public class FallbackAiService implements AiService {
         if (delegates.isEmpty()) {
             return handleEmptyDelegates();
         }
-        return delegates.get(0).recommendExecutionOrder(request)
-                .thenApply(this::applyStrategies);
+        DegradationContext context = new DegradationContext();
+        context.setServiceName("execution");
+        context.setOperationName("recommendExecutionOrder");
+        AiService delegate = selectDelegate(context);
+        if (delegate == null) {
+            return handleEmptyDelegates();
+        }
+        return delegate.recommendExecutionOrder(request)
+                .thenApply(result -> applyStrategies(result, context));
     }
 
     @Override
@@ -167,8 +280,15 @@ public class FallbackAiService implements AiService {
         if (delegates.isEmpty()) {
             return handleEmptyDelegates();
         }
-        return delegates.get(0).schedule(request)
-                .thenApply(this::applyStrategies);
+        DegradationContext context = new DegradationContext();
+        context.setServiceName("schedule");
+        context.setOperationName("schedule");
+        AiService delegate = selectDelegate(context);
+        if (delegate == null) {
+            return handleEmptyDelegates();
+        }
+        return delegate.schedule(request)
+                .thenApply(result -> applyStrategies(result, context));
     }
 
     @Override
@@ -176,15 +296,21 @@ public class FallbackAiService implements AiService {
         if (delegates.isEmpty()) {
             return handleEmptyDelegates();
         }
-        return delegates.get(0).discussionConclusion(request)
-                .thenApply(this::applyStrategies);
+        DegradationContext context = new DegradationContext();
+        context.setServiceName("discussion");
+        context.setOperationName("discussionConclusion");
+        AiService delegate = selectDelegate(context);
+        if (delegate == null) {
+            return handleEmptyDelegates();
+        }
+        return delegate.discussionConclusion(request)
+                .thenApply(result -> applyStrategies(result, context));
     }
 
-    private <T> AiResult<T> applyStrategies(AiResult<T> result) {
+    private <T> AiResult<T> applyStrategies(AiResult<T> result, DegradationContext context) {
         if (result.isSuccess() || result.isDegraded()) {
             return result;
         }
-        DegradationContext context = new DegradationContext();
         for (DegradationStrategy strategy : strategies) {
             if (strategy.shouldDegrade(context)) {
                 return AiResult.degraded("Degraded by strategy");

@@ -8,6 +8,8 @@ spring:
     init:
       encoding: UTF-8
       mode: always
+      schema-locations:
+      data-locations: classpath:data.sql
 
   h2:
     console:
@@ -25,9 +27,14 @@ spring:
         format_sql: true
     show-sql: true
 
+  devtools:
+    restart:
+      trigger-file: .trigger-restart
+
 jwt:
-  secret: ZGV2LXNlY3JldC1rZXktZm9yLWxvY2FsLWRldmVsb3BtZW50LW9ubHktcGxlYXNlLWNoYW5nZS1pbi1wcm9kdWN0aW9u
-  expiration: 86400
+  secret: ${JWT_SECRET:ZGV2LXNlY3JldC1rZXktZm9yLWxvY2FsLWRldmVsb3BtZW50LW9ubHktcGxlYXNlLWNoYW5nZS1pbi1wcm9kdWN0aW9u}
+  access-token-expiration: 86400
+  refresh-token-expiration: 604800
 
 ai:
   mock:

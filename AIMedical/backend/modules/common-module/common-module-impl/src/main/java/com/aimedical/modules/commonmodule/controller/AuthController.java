@@ -1,17 +1,20 @@
 package com.aimedical.modules.commonmodule.controller;
 
 import com.aimedical.common.result.Result;
+import com.aimedical.modules.commonmodule.api.AuthService;
+import com.aimedical.modules.commonmodule.api.dto.ProfileUpdateRequest;
+import com.aimedical.modules.commonmodule.api.dto.TokenRefreshResponse;
+import com.aimedical.modules.commonmodule.api.dto.TokenResponse;
+import com.aimedical.modules.commonmodule.auth.UserInfoResponse;
 import com.aimedical.modules.commonmodule.dto.request.LoginRequest;
 import com.aimedical.modules.commonmodule.dto.request.PasswordChangeRequest;
-import com.aimedical.modules.commonmodule.dto.request.ProfileUpdateRequest;
 import com.aimedical.modules.commonmodule.dto.request.RefreshTokenRequest;
-import com.aimedical.modules.commonmodule.dto.response.LoginResponse;
-import com.aimedical.modules.commonmodule.dto.response.TokenRefreshResponse;
-import com.aimedical.modules.commonmodule.auth.UserInfoResponse;
-import com.aimedical.modules.commonmodule.service.AuthService;
+import com.aimedical.modules.commonmodule.permission.UserRepository;
 
 import jakarta.validation.Valid;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -24,33 +27,38 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Profile("phase1")
 @RequestMapping("/api/auth")
+@PreAuthorize("isAuthenticated()")
 public class AuthController {
 
     private final AuthService authService;
+    private final UserRepository userRepository;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, UserRepository userRepository) {
         this.authService = authService;
+        this.userRepository = userRepository;
     }
 
     @PostMapping("/login")
-    public Result<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        LoginResponse response = authService.login(request);
+    @PreAuthorize("permitAll()")
+    public Result<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
+        TokenResponse response = authService.authenticate(request.username(), request.password());
         return Result.success(response);
     }
 
     @PostMapping("/logout")
     public Result<Void> logout(
-            @RequestHeader(value = "Authorization", required = false) String authHeader,
-            @RequestBody(required = false) RefreshTokenRequest refreshTokenRequest) {
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
         String token = extractToken(authHeader);
         if (token != null) {
-            authService.logout(token, refreshTokenRequest != null ? refreshTokenRequest.refreshToken() : null);
+            authService.logout(token);
         }
         return Result.success(null);
     }
 
     @PostMapping("/refresh")
+    @PreAuthorize("permitAll()")
     public Result<TokenRefreshResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
         TokenRefreshResponse response = authService.refreshToken(request.refreshToken());
         return Result.success(response);
@@ -85,17 +93,22 @@ public class AuthController {
 
     private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            throw new IllegalStateException("无法从SecurityContext获取用户ID");
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new com.aimedical.common.exception.BusinessException(
+                    com.aimedical.common.exception.GlobalErrorCode.UNAUTHORIZED, "未认证");
         }
         Object principal = authentication.getPrincipal();
-        if (principal instanceof Long) {
-            return (Long) principal;
+        if (principal instanceof Long uid) return uid;
+        if (principal instanceof Integer uid) return uid.longValue();
+        // Principal is username (String) — look up userId
+        if (principal instanceof String username) {
+            return userRepository.findByUsername(username)
+                    .map(u -> u.getId())
+                    .orElseThrow(() -> new com.aimedical.common.exception.BusinessException(
+                            com.aimedical.common.exception.GlobalErrorCode.UNAUTHORIZED, "用户不存在"));
         }
-        if (principal instanceof Integer) {
-            return ((Integer) principal).longValue();
-        }
-        throw new IllegalStateException("无法从SecurityContext获取用户ID");
+        throw new com.aimedical.common.exception.BusinessException(
+                com.aimedical.common.exception.GlobalErrorCode.UNAUTHORIZED, "无法识别用户身份");
     }
 
     private String extractToken(String authHeader) {

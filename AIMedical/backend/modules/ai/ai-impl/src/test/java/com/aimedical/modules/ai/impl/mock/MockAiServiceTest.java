@@ -17,10 +17,11 @@ import com.aimedical.modules.ai.api.dto.prescription.PrescriptionAssistRequest;
 import com.aimedical.modules.ai.api.dto.prescription.PrescriptionCheckRequest;
 import com.aimedical.modules.ai.api.dto.schedule.ScheduleRequest;
 import com.aimedical.modules.ai.api.dto.triage.TriageRequest;
-import com.aimedical.modules.ai.api.dto.triage.TriageResponse;
+import com.aimedical.modules.ai.api.dto.triage.AdditionalResponseItem;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 class MockAiServiceTest {
@@ -33,8 +34,26 @@ class MockAiServiceTest {
     }
 
     @Test
-    void triageShouldReturnMockData() {
-        var future = service.triage(new TriageRequest());
+    void triageShouldReturnQuestionOnFirstRequest() {
+        TriageRequest req = new TriageRequest();
+        req.setChiefComplaint("头痛三天");
+        var future = service.triage(req);
+        var data = future.join().getData();
+        assertNotNull(data.getSessionId());
+        assertFalse(data.getIsComplete());
+        assertNotNull(data.getQuestion());
+    }
+
+    @Test
+    void triageShouldReturnFullResultWithResponses() {
+        TriageRequest req = new TriageRequest();
+        req.setChiefComplaint("头痛三天");
+        AdditionalResponseItem fi1 = new AdditionalResponseItem();
+        fi1.setAnswer("持续了三天");
+        AdditionalResponseItem fi2 = new AdditionalResponseItem();
+        fi2.setAnswer("有恶心症状");
+        req.setAdditionalResponses(List.of(fi1, fi2));
+        var future = service.triage(req);
         assertNotNull(future);
         assertTrue(future.isDone());
         var result = future.join();
@@ -42,9 +61,25 @@ class MockAiServiceTest {
         assertFalse(result.isDegraded());
         assertNotNull(result.getData());
         var data = result.getData();
-        assertNotNull(data.getRecommendedDepartments());
-        assertEquals("mock_departmentName", data.getRecommendedDepartments().get(0).getDepartmentName());
-        assertEquals("mock_reason", data.getReason());
+        assertNotNull(data.getSessionId());
+        assertTrue(data.getIsComplete());
+        assertNotNull(data.getDepartments());
+        assertEquals("神经内科", data.getDepartments().get(0).getDepartmentName());
+        assertEquals(92f, data.getDepartments().get(0).getScore());
+        assertNotNull(data.getDoctors());
+        assertEquals("王主任", data.getDoctors().get(0).getDoctorName());
+    }
+
+    @Test
+    void triageShouldReturnDegradedWhenTriggered() {
+        TriageRequest req = new TriageRequest();
+        req.setChiefComplaint("degraded:测试降级路径");
+        var future = service.triage(req);
+        var result = future.join();
+        assertTrue(result.isDegraded());
+        var data = result.getData();
+        assertTrue(data.getIsComplete());
+        assertTrue(data.getIsDegraded());
     }
 
     @Test

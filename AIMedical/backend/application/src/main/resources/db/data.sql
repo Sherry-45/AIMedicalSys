@@ -8,10 +8,10 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ---------------------------------------------
 -- 角色
 -- ---------------------------------------------
-INSERT INTO `sys_role` (`id`, `code`, `name`, `description`, `enabled`, `created_at`, `updated_at`, `deleted`) VALUES
-(1, 'ROLE_ADMIN',   '系统管理员', '拥有系统全部权限', 1, NOW(), NOW(), 0),
-(2, 'ROLE_DOCTOR',  '医生',       '医生角色',         1, NOW(), NOW(), 0),
-(3, 'ROLE_PATIENT', '患者',       '患者角色',         1, NOW(), NOW(), 0);
+INSERT INTO `sys_role` (`id`, `code`, `name`, `description`, `enabled`, `sort`, `created_at`, `updated_at`, `deleted`) VALUES
+(1, 'ADMIN',   '系统管理员', '拥有系统全部权限', 1, 0, NOW(), NOW(), 0),
+(2, 'DOCTOR',  '医生',       '医生角色',         1, 1, NOW(), NOW(), 0),
+(3, 'PATIENT', '患者',       '患者角色',         1, 2, NOW(), NOW(), 0);
 
 -- ---------------------------------------------
 -- 岗位
@@ -27,19 +27,19 @@ INSERT INTO `sys_post` (`id`, `code`, `name`, `description`, `role_id`, `enabled
 -- ---------------------------------------------
 -- 菜单 / 功能
 -- ---------------------------------------------
-INSERT INTO `sys_function` (`id`, `parent_id`, `code`, `name`, `type`, `path`, `component`, `icon`, `sort`, `visible`, `perms`, `enabled`, `created_at`, `updated_at`, `deleted`) VALUES
-(1,  NULL, 'system',              '系统管理', 'MENU', '/system',               'Layout',                     'setting',     1, 1, NULL,                       1, NOW(), NOW(), 0),
-(2,  1,    'system:user',         '用户管理', 'MENU', '/system/user',          'system/user/index',          'user',        1, 1, 'system:user:list',         1, NOW(), NOW(), 0),
-(3,  1,    'system:role',         '角色管理', 'MENU', '/system/role',          'system/role/index',          'peoples',     2, 1, 'system:role:list',         1, NOW(), NOW(), 0),
-(4,  1,    'system:post',         '岗位管理', 'MENU', '/system/post',          'system/post/index',          'user-tag',    3, 1, 'system:post:list',         1, NOW(), NOW(), 0),
-(5,  1,    'system:menu',         '菜单管理', 'MENU', '/system/menu',          'system/menu/index',          'menu',        4, 1, 'system:menu:list',         1, NOW(), NOW(), 0),
-(6,  1,    'system:dict',         '字典管理', 'MENU', '/system/dict',          'system/dict/index',          'edit',        5, 1, 'system:dict:list',         1, NOW(), NOW(), 0),
-(7,  NULL, 'monitor',             '系统监控', 'MENU', '/monitor',              'Layout',                     'monitor',     2, 1, NULL,                       1, NOW(), NOW(), 0),
-(8,  7,    'monitor:log',         '操作日志', 'MENU', '/monitor/operationLog', 'monitor/operationLog/index', 'form',        1, 1, 'monitor:operationLog:list', 1, NOW(), NOW(), 0),
-(9,  7,    'monitor:loginLog',    '登录日志', 'MENU', '/monitor/loginLog',     'monitor/loginLog/index',     'logininfor',  2, 1, 'monitor:loginLog:list',    1, NOW(), NOW(), 0),
-(10, NULL, 'patient',             '患者中心', 'MENU', '/patient',              'Layout',                     'user-friend', 3, 1, NULL,                       1, NOW(), NOW(), 0),
-(11, 10,   'patient:profile',     '个人中心', 'MENU', '/patient/profile',      'patient/profile/index',      'id-card',     1, 1, 'patient:profile:view',     1, NOW(), NOW(), 0),
-(12, 10,   'patient:health',      '健康档案', 'MENU', '/patient/health',       'patient/health/index',       'heart',       2, 1, 'patient:health:view',      1, NOW(), NOW(), 0);
+INSERT INTO `sys_function` (`id`, `parent_id`, `code`, `name`, `type`, `path`, `component`, `icon`, `sort_order`, `visible`, `enabled`, `created_at`, `updated_at`, `deleted`) VALUES
+(1,  NULL, 'system',              '系统管理', 'MENU', '/system',               'Layout',                     'setting',     1, 1, 1, NOW(), NOW(), 0),
+(2,  1,    'system:user',         '用户管理', 'MENU', '/system/user',          'system/user/index',          'user',        1, 1, 1, NOW(), NOW(), 0),
+(3,  1,    'system:role',         '角色管理', 'MENU', '/system/role',          'system/role/index',          'peoples',     2, 1, 1, NOW(), NOW(), 0),
+(4,  1,    'system:post',         '岗位管理', 'MENU', '/system/post',          'system/post/index',          'user-tag',    3, 1, 1, NOW(), NOW(), 0),
+(5,  1,    'system:menu',         '菜单管理', 'MENU', '/system/menu',          'system/menu/index',          'menu',        4, 1, 1, NOW(), NOW(), 0),
+(6,  1,    'system:dict',         '字典管理', 'MENU', '/system/dict',          'system/dict/index',          'edit',        5, 1, 1, NOW(), NOW(), 0),
+(7,  NULL, 'monitor',             '系统监控', 'MENU', '/monitor',              'Layout',                     'monitor',     2, 1, 1, NOW(), NOW(), 0),
+(8,  7,    'monitor:log',         '操作日志', 'MENU', '/monitor/operationLog', 'monitor/operationLog/index', 'form',        1, 1, 1, NOW(), NOW(), 0),
+(9,  7,    'monitor:loginLog',    '登录日志', 'MENU', '/monitor/loginLog',     'monitor/loginLog/index',     'logininfor',  2, 1, 1, NOW(), NOW(), 0),
+(10, NULL, 'patient',             '患者中心', 'MENU', '/patient',              'Layout',                     'user-friend', 3, 1, 1, NOW(), NOW(), 0),
+(11, 10,   'patient:profile',     '个人中心', 'MENU', '/patient/profile',      'patient/profile/index',      'id-card',     1, 1, 1, NOW(), NOW(), 0),
+(12, 10,   'patient:health',      '健康档案', 'MENU', '/patient/health',       'patient/health/index',       'heart',       2, 1, 1, NOW(), NOW(), 0);
 
 -- ---------------------------------------------
 -- 字典类型
@@ -79,9 +79,9 @@ INSERT INTO `sys_dict_data` (`dict_sort`, `dict_label`, `dict_value`, `dict_type
 -- 测试用户
 -- ---------------------------------------------
 INSERT INTO `sys_user` (`id`, `username`, `password`, `nickname`, `phone`, `email`, `user_type`, `enabled`, `password_change_required`, `token_version`, `created_at`, `updated_at`, `deleted`) VALUES
-(1, 'admin',       '$2a$10$kqK1hXMZJ9HsAzk2dZxVW.Ox63.nVJfkkz/fwR3Xs2BGpZ0GLHcpC', '系统管理员', '13800000001', 'admin@aimedical.com',    'ADMIN',   1, 1, 0, NOW(), NOW(), 0),
-(2, 'doctor01',    '$2a$10$7UbYzTAGc9QCuwPqvCXjU.vX.OLISbFvWXQBLhQ7B2QrzrTMgKBmm', '张医生',     '13800000002', 'doctor01@aimedical.com', 'DOCTOR',  1, 1, 0, NOW(), NOW(), 0),
-(3, '13900000003', '$2a$10$d7TIi357mO4ntBUGPCKL5.SF.lyDNU0QWGXmnlELdR5OUyAlzVogG', '李先生',     '13900000003', 'patient01@aimedical.com','PATIENT', 1, 1, 0, NOW(), NOW(), 0);
+(1, 'admin',       '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '系统管理员', '13800000001', 'admin@aimedical.com',    'ADMIN',   1, 0, 0, NOW(), NOW(), 0),
+(2, 'doctor01',    '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '张医生',     '13800000002', 'doctor01@aimedical.com', 'DOCTOR',  1, 0, 0, NOW(), NOW(), 0),
+(3, '13900000003', '$2a$10$7JB720yubVSZvUI0rEqK/.VqGOZTH.ulu33dHOiBE8ByOhJIrdAu2', '李先生',     '13900000003', 'patient01@aimedical.com','PATIENT', 1, 0, 0, NOW(), NOW(), 0);
 
 -- ---------------------------------------------
 -- 用户-角色
@@ -126,41 +126,23 @@ INSERT INTO `admin_profile` (`id`, `user_id`, `real_name`, `gender`, `phone`, `d
 (1, 1, '系统管理员', 'MALE', '13800000001', '信息中心', NOW(), NOW(), 0);
 
 -- ---------------------------------------------
--- 健康档案 (patient_id=1)
+-- 患者健康记录 (关联 patient_profile.id=1, 使用 patient_* 新表体系)
 -- ---------------------------------------------
-INSERT INTO `health_profile` (`id`, `patient_id`, `blood_type`, `height_cm`, `weight_kg`, `bmi`, `marital_status`, `lifestyle_note`, `created_at`, `updated_at`, `deleted`) VALUES
-(1, 1, 'A', 175.0, 70.0, 22.9, 'MARRIED', '每周运动3次，饮食规律，不吸烟不饮酒', NOW(), NOW(), 0);
-
--- ---------------------------------------------
--- 过敏史
--- ---------------------------------------------
-INSERT INTO `allergy_history` (`health_profile_id`, `allergen`, `reaction_type`, `severity`, `occurred_at`, `created_at`, `updated_at`, `deleted`) VALUES
+INSERT INTO `patient_allergy` (`patient_id`, `allergen`, `reaction_type`, `severity`, `occurred_at`, `created_at`, `updated_at`, `deleted`) VALUES
 (1, '青霉素', '皮疹',     'MILD',     '2015-03-10', NOW(), NOW(), 0),
 (1, '头孢类', '呼吸困难', 'MODERATE', '2018-07-20', NOW(), NOW(), 0);
 
--- ---------------------------------------------
--- 慢性疾病
--- ---------------------------------------------
-INSERT INTO `chronic_disease` (`health_profile_id`, `disease_name`, `diagnosed_at`, `current_status`, `created_at`, `updated_at`, `deleted`) VALUES
+INSERT INTO `patient_chronic_disease` (`patient_id`, `disease_name`, `diagnosed_at`, `current_status`, `created_at`, `updated_at`, `deleted`) VALUES
 (1, '高血压', '2022-01-15', 'STABLE', NOW(), NOW(), 0);
 
--- ---------------------------------------------
--- 家族病史
--- ---------------------------------------------
-INSERT INTO `family_history` (`health_profile_id`, `relationship`, `disease_name`, `note`, `created_at`, `updated_at`, `deleted`) VALUES
+INSERT INTO `patient_family_history` (`patient_id`, `relationship`, `disease_name`, `note`, `created_at`, `updated_at`, `deleted`) VALUES
 (1, '父亲', '冠心病', '60岁发病', NOW(), NOW(), 0),
 (1, '母亲', '糖尿病', '55岁发病', NOW(), NOW(), 0);
 
--- ---------------------------------------------
--- 手术史
--- ---------------------------------------------
-INSERT INTO `surgery_history` (`health_profile_id`, `surgery_name`, `surgery_at`, `hospital`, `created_at`, `updated_at`, `deleted`) VALUES
+INSERT INTO `patient_surgery_history` (`patient_id`, `surgery_name`, `surgery_at`, `hospital`, `created_at`, `updated_at`, `deleted`) VALUES
 (1, '阑尾切除术', '2010-06-15', '北京市第一人民医院', NOW(), NOW(), 0);
 
--- ---------------------------------------------
--- 用药史
--- ---------------------------------------------
-INSERT INTO `medication_history` (`health_profile_id`, `drug_name`, `reason`, `started_at`, `created_at`, `updated_at`, `deleted`) VALUES
+INSERT INTO `patient_medication_history` (`patient_id`, `drug_name`, `reason`, `started_at`, `created_at`, `updated_at`, `deleted`) VALUES
 (1, '硝苯地平缓释片', '高血压', '2022-02-01', NOW(), NOW(), 0);
 
 SET FOREIGN_KEY_CHECKS = 1;

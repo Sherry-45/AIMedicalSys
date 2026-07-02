@@ -1,5 +1,7 @@
 package com.aimedical.modules.ai.api;
 
+import java.util.Objects;
+
 public class AiResult<T> {
 
     private boolean success;
@@ -20,7 +22,7 @@ public class AiResult<T> {
     }
 
     public static <T> AiResult<T> success(T data) {
-        return new AiResult<>(true, data, null, false, null);
+        return new AiResult<>(true, Objects.requireNonNull(data), null, false, null);
     }
 
     public static <T> AiResult<T> failure(String errorCode) {
@@ -29,6 +31,10 @@ public class AiResult<T> {
 
     public static <T> AiResult<T> degraded(String fallbackReason) {
         return new AiResult<>(false, null, null, true, fallbackReason);
+    }
+
+    public static <T> AiResult<T> degraded(T data, String fallbackReason) {
+        return new AiResult<>(false, data, null, true, fallbackReason);
     }
 
     public boolean isSuccess() {

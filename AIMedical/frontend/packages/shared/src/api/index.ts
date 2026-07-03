@@ -3,7 +3,7 @@ import { apiGet, apiPost, apiPut, apiDelete } from './client'
 import { getAccessToken, setTokens, clearTokens, getRefreshToken } from '../utils'
 
 // 重新导出 axios 客户端与底层请求函数（供外部直接使用）
-export { apiClient, apiGet, apiPost, apiPut, apiDelete, setAuthToken, clearAuthToken } from './client'
+export { apiClient, apiGet, apiPost, apiPut, apiDelete, apiPatch, setAuthToken, clearAuthToken } from './client'
 
 // ==================== Auth API (Patient-centric, fork) ====================
 
@@ -179,14 +179,62 @@ export const authApi = {
 
 /**
  * 菜单相关API
+ *
+ * <p>对应后端 /api/menu/* 系列接口。
+ * - /tree 与 /all：任意已认证 / ADMIN
+ * - POST / PATCH / DELETE：仅 ADMIN
  */
+export interface MenuCreateRequest {
+  name: string
+  permission: string
+  parent_id?: number | null
+  path?: string
+  component?: string
+  icon?: string
+  sort?: number
+  visible: boolean
+}
+
+export interface MenuUpdateRequest {
+  name?: string
+  permission?: string
+  parent_id?: number | null
+  path?: string
+  component?: string
+  icon?: string
+  sort?: number
+  visible?: boolean
+}
+
 export const menuApi = {
+  /** 获取当前用户菜单树。GET /api/menu/tree */
   tree: (): Promise<MenuItem[] | BusinessError> => {
     return apiGet<MenuItem[]>('/menu/tree')
   },
 
+  /** 获取所有菜单（扁平列表，可能含 children 字段）。GET /api/menu/all */
   all: (): Promise<MenuItem[] | BusinessError> => {
     return apiGet<MenuItem[]>('/menu/all')
+  },
+
+  /** 获取菜单详情。GET /api/menu/{id} */
+  get: (id: number): Promise<MenuItem | BusinessError> => {
+    return apiGet<MenuItem>(`/menu/${id}`)
+  },
+
+  /** 创建菜单。POST /api/menu */
+  create: (request: MenuCreateRequest): Promise<MenuItem | BusinessError> => {
+    return apiPost<MenuItem>('/menu', request)
+  },
+
+  /** 更新菜单。PATCH /api/menu/{id} */
+  update: (id: number, request: MenuUpdateRequest): Promise<MenuItem | BusinessError> => {
+    return apiPatch<MenuItem>(`/menu/${id}`, request)
+  },
+
+  /** 删除菜单。DELETE /api/menu/{id} */
+  delete: (id: number): Promise<void | BusinessError> => {
+    return apiDelete<void>(`/menu/${id}`)
   },
 }
 
@@ -199,6 +247,9 @@ export { inventoryApi } from './inventory'
 export { windowApi } from './window'
 export { healthRecordApi } from './health-record'
 export { registrationApi } from './registration'
+
+// 管理员端 API（用户/角色/岗位管理）
+export { userManagementApi, roleManagementApi, postManagementApi } from './admin'
 
 /**
  * AI 智能导诊 API

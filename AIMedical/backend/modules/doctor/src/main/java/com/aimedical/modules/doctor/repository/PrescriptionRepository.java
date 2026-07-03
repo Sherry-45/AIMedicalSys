@@ -1,6 +1,9 @@
 package com.aimedical.modules.doctor.repository;
 
 import com.aimedical.modules.doctor.entity.PrescriptionEntity;
+import com.aimedical.modules.doctor.entity.PrescriptionStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -38,4 +41,13 @@ public interface PrescriptionRepository extends JpaRepository<PrescriptionEntity
      * @return 处方列表
      */
     List<PrescriptionEntity> findByPatientIdAndDoctorIdOrderByCreatedAtDesc(Long patientId, Long doctorId);
+
+    /**
+     * 按状态分页查询处方（管理员端使用，按创建时间倒序）。
+     *
+     * @param status   处方状态
+     * @param pageable 分页参数
+     * @return 处方分页结果
+     */
+    Page<PrescriptionEntity> findByStatusOrderByCreatedAtDesc(PrescriptionStatus status, Pageable pageable);
 }

@@ -48,29 +48,49 @@ MERGE INTO sys_function (id, parent_id, code, name, description, enabled, delete
 (28, 26,   'menu:health-record-trend', '健康趋势',   '长期健康趋势', true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 2, true, 'MENU', 'line-chart',   '/health-record/trend'),
 -- 系统管理目录（仅管理员可见）
 (29, NULL, 'menu:system',       '系统管理',   '系统管理',         true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 8, true, 'DIRECTORY', 'setting',      '/system'),
-(30, 29,   'menu:user',         '用户管理',   '用户管理菜单',     true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 1, true, 'MENU',     'user',         '/system/user'),
-(31, 29,   'menu:role',         '角色管理',   '角色管理菜单',     true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 2, true, 'MENU',     'role',         '/system/role'),
-(32, 29,   'menu:menu',         '菜单管理',   '菜单管理菜单',     true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 3, true, 'MENU',     'menu',         '/system/menu');
+(30, 29,   'menu:user',         '用户管理',   '用户管理菜单',     true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 1, true, 'MENU',     'user',         '/system/users'),
+(31, 29,   'menu:role',         '角色管理',   '角色管理菜单',     true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 2, true, 'MENU',     'role',         '/system/roles'),
+(32, 29,   'menu:menu',         '菜单管理',   '菜单管理菜单',     true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 3, true, 'MENU',     'menu',         '/system/menus'),
+-- 数据查看目录（仅管理员可见，用于查看患者与处方全量数据）
+(33, NULL, 'menu:data-view',    '数据查看',   '全量数据查看',     true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 2, true, 'DIRECTORY', 'data-view',   '/data-view'),
+(34, 33,   'menu:patients',     '患者管理',   '患者列表（全量）', true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 1, true, 'MENU',      'user-friend', '/patients'),
+(35, 33,   'menu:prescriptions','处方查询',   '处方列表（全量）', true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 2, true, 'MENU',      'edit-square', '/prescriptions');
 
 -- 密码统一 password123 (BCrypt)
 MERGE INTO sys_user (id, username, password, nickname, phone, email, enabled, password_change_required, token_version, user_type, deleted, created_at, updated_at) KEY(id) VALUES
 (1, 'admin',      '$2a$10$S2kRnxEIV3e8UuvncH3cGuOhu1XSdaVJuwg9f3T6gfPmWeJsFOCYq', '系统管理员', '13800138001', 'admin@aimedical.com',      true, false, 0, 'ADMIN',   false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
 (2, 'doctor001',  '$2a$10$S2kRnxEIV3e8UuvncH3cGuOhu1XSdaVJuwg9f3T6gfPmWeJsFOCYq', '张医生',     '13800138002', 'doctor001@aimedical.com', true, false, 0, 'DOCTOR',  false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-(3, '13800138003', '$2a$10$S2kRnxEIV3e8UuvncH3cGuOhu1XSdaVJuwg9f3T6gfPmWeJsFOCYq', '李患者',     '13800138003', 'patient001@aimedical.com',true, false, 0, 'PATIENT', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+(3, '13800138003', '$2a$10$S2kRnxEIV3e8UuvncH3cGuOhu1XSdaVJuwg9f3T6gfPmWeJsFOCYq', '李患者',     '13800138003', 'patient001@aimedical.com',true, false, 0, 'PATIENT', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+-- 新增测试医生（不同科室，便于三端联动验证）
+(4, 'doctor002',  '$2a$10$S2kRnxEIV3e8UuvncH3cGuOhu1XSdaVJuwg9f3T6gfPmWeJsFOCYq', '李医生',     '13800138004', 'doctor002@aimedical.com', true, false, 0, 'DOCTOR',  false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(5, 'doctor003',  '$2a$10$S2kRnxEIV3e8UuvncH3cGuOhu1XSdaVJuwg9f3T6gfPmWeJsFOCYq', '王医生',     '13800138005', 'doctor003@aimedical.com', true, false, 0, 'DOCTOR',  false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+-- 新增测试患者（覆盖不同性别/年龄，便于管理员端查看与医生端接诊）
+(6, '13800138006', '$2a$10$S2kRnxEIV3e8UuvncH3cGuOhu1XSdaVJuwg9f3T6gfPmWeJsFOCYq', '王芳',       '13800138006', 'patient002@aimedical.com',true, false, 0, 'PATIENT', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(7, '13800138007', '$2a$10$S2kRnxEIV3e8UuvncH3cGuOhu1XSdaVJuwg9f3T6gfPmWeJsFOCYq', '赵强',       '13800138007', 'patient003@aimedical.com',true, false, 0, 'PATIENT', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(8, '13800138008', '$2a$10$S2kRnxEIV3e8UuvncH3cGuOhu1XSdaVJuwg9f3T6gfPmWeJsFOCYq', '孙丽',       '13800138008', 'patient004@aimedical.com',true, false, 0, 'PATIENT', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(9, '13800138009', '$2a$10$S2kRnxEIV3e8UuvncH3cGuOhu1XSdaVJuwg9f3T6gfPmWeJsFOCYq', '周明',       '13800138009', 'patient005@aimedical.com',true, false, 0, 'PATIENT', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
 
 MERGE INTO user_role (user_id, role_id) KEY(user_id, role_id) VALUES
-(1, 1), (2, 2), (3, 3);
+(1, 1), (2, 2), (3, 3),
+(4, 2), (5, 2),
+(6, 3), (7, 3), (8, 3), (9, 3);
 
 MERGE INTO user_post (user_id, post_id) KEY(user_id, post_id) VALUES
-(1, 1), (2, 2), (3, 3);
+(1, 1), (2, 2), (3, 3),
+(4, 2), (5, 2),
+(6, 3), (7, 3), (8, 3), (9, 3);
 
 MERGE INTO post_function (post_id, function_id) KEY(post_id, function_id) VALUES
--- 管理员：全部功能（1-32，已移除 7=menu:appointment）
-(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 8),
-(1, 9), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14), (1, 15), (1, 16),
-(1, 17), (1, 18), (1, 19), (1, 20), (1, 21), (1, 22), (1, 23), (1, 24),
-(1, 25), (1, 26), (1, 27), (1, 28), (1, 29), (1, 30), (1, 31), (1, 32),
--- 医生：诊疗 + AI + 药房 + 药库 + 窗口 + 健康档案（1-28，不含 7=appointment 与 29-32 系统管理）
+-- 管理员：仪表盘 + 数据查看 + 药房 + 药库 + 窗口 + 健康档案 + 系统管理
+-- 移除：诊疗管理(2-6)、AI辅助(8-13) 等医生端操作菜单
+(1, 1),
+(1, 14), (1, 15), (1, 16), (1, 17),
+(1, 18), (1, 19), (1, 20), (1, 21),
+(1, 22), (1, 23), (1, 24), (1, 25),
+(1, 26), (1, 27), (1, 28),
+(1, 29), (1, 30), (1, 31), (1, 32),
+(1, 33), (1, 34), (1, 35),
+-- 医生：诊疗 + AI + 药房 + 药库 + 窗口 + 健康档案（1-28，不含 7=appointment 与 29-35 系统管理/数据查看）
 (2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 8),
 (2, 9), (2, 10), (2, 11), (2, 12), (2, 13), (2, 14), (2, 15), (2, 16),
 (2, 17), (2, 18), (2, 19), (2, 20), (2, 21), (2, 22), (2, 23), (2, 24),
@@ -79,33 +99,54 @@ MERGE INTO post_function (post_id, function_id) KEY(post_id, function_id) VALUES
 (3, 1);
 
 -- 重置自增计数器，避免后续业务 INSERT 主键冲突
--- 各表当前最大 ID：sys_role=3, sys_post=3, sys_function=32, sys_user=3
+-- 各表当前最大 ID：sys_role=3, sys_post=3, sys_function=35, sys_user=9
 ALTER TABLE sys_role ALTER COLUMN id RESTART WITH 4;
 ALTER TABLE sys_post ALTER COLUMN id RESTART WITH 4;
-ALTER TABLE sys_function ALTER COLUMN id RESTART WITH 33;
-ALTER TABLE sys_user ALTER COLUMN id RESTART WITH 4;
+ALTER TABLE sys_function ALTER COLUMN id RESTART WITH 36;
+ALTER TABLE sys_user ALTER COLUMN id RESTART WITH 10;
 
 -- Phase3 种子数据：医生档案（doctor_profile）
 INSERT INTO doctor_profile (id, user_id, real_name, title, department, deleted, created_at, updated_at) VALUES
-(1, 2, '张医生', '副主任医师', '内科', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+(1, 2, '张医生', '副主任医师', '内科', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 4, '李医生', '主治医师',   '儿科', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, 5, '王医生', '主任医师',   '外科', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
+ON CONFLICT (id) DO NOTHING;
 
 -- 重置 doctor_profile 自增计数器，避免后续业务 INSERT 主键冲突
-ALTER TABLE doctor_profile ALTER COLUMN id RESTART WITH 2;
+ALTER TABLE doctor_profile ALTER COLUMN id RESTART WITH 4;
 
 -- Phase2 种子数据：患者档案、过敏史、慢病史、挂号、导诊记录
 MERGE INTO patient_profile (id, user_id, real_name, gender, phone, emergency_contact, avatar_url, deleted, created_at, updated_at) KEY(id) VALUES
-(1, 3, '李明', 'MALE', '13800138003', '王芳 13700000001', NULL, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+(1, 3, '李明', 'MALE', '13800138003', '王芳 13700000001', NULL, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 6, '王芳', 'FEMALE', '13800138006', '李明 13800138003', NULL, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, 7, '赵强', 'MALE',   '13800138007', '赵母 13700000002', NULL, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(4, 8, '孙丽', 'FEMALE', '13800138008', '孙父 13700000003', NULL, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(5, 9, '周明', 'MALE',   '13800138009', '周妻 13700000004', NULL, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
 
 MERGE INTO patient_allergy (id, patient_id, allergen, reaction_type, severity, occurred_at, deleted, created_at, updated_at) KEY(id) VALUES
 (1, 1, '青霉素', '皮疹', 'MILD', '2015-03-10', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
 
 MERGE INTO patient_chronic_disease (id, patient_id, disease_name, diagnosed_at, current_status, deleted, created_at, updated_at) KEY(id) VALUES
-(1, 1, '高血压', '2022-01-15', 'STABLE', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+(1, 1, '高血压', '2022-01-15', 'STABLE', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 2, '糖尿病', '2021-06-20', 'STABLE', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, 5, '冠心病', '2023-03-10', 'STABLE', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+
+-- 重置 patient_profile 自增计数器，避免后续业务 INSERT 主键冲突
+ALTER TABLE patient_profile ALTER COLUMN id RESTART WITH 6;
 
 MERGE INTO registration (id, patient_id, registration_type, department, scheduled_date, scheduled_time_slot, status, deleted, created_at, updated_at) KEY(id) VALUES
 (1, 1, 'OUTPATIENT', '神经内科', '2026-07-01', '08:00-08:30', 'PENDING', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
 (2, 1, 'EXAMINATION', NULL, '2026-07-02', '10:30-11:00', 'CONFIRMED', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-(3, 1, 'OUTPATIENT', '普通内科', '2026-07-01', '15:00-15:30', 'COMPLETED', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+(3, 1, 'OUTPATIENT', '普通内科', '2026-07-01', '15:00-15:30', 'COMPLETED', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+-- 新增测试挂号（覆盖不同患者/科室/状态，便于三端联动）
+(4, 2, 'OUTPATIENT', '内科',     '2026-07-04', '09:00-09:30', 'PENDING',   false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(5, 2, 'OUTPATIENT', '内科',     '2026-07-03', '14:00-14:30', 'COMPLETED', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(6, 3, 'EMERGENCY',  '急诊',     '2026-07-04', '00:00-00:30', 'COMPLETED', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(7, 4, 'OUTPATIENT', '儿科',     '2026-07-04', '10:00-10:30', 'CONFIRMED', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(8, 5, 'OUTPATIENT', '外科',     '2026-07-04', '11:00-11:30', 'PENDING',   false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+
+-- 重置 registration 自增计数器
+ALTER TABLE registration ALTER COLUMN id RESTART WITH 9;
 
 MERGE INTO triage_record (id, patient_id, chief_complaint, session_id, recommended_departments, recommended_doctors, is_degraded, rule_version, rule_set_id, matched_rules, deleted, created_at, updated_at) KEY(id) VALUES
 (1, 3, '头痛3天，伴有恶心，前额搏动性疼痛', 'mock-session-001', '神经内科,普通内科,中医科', '王主任,张副主任,李主治医师', false, 'v1.0.0', 'rule-set-neuro', '头痛规则-偏头痛,头痛规则-紧张性', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
@@ -215,3 +256,26 @@ ALTER TABLE transfer_order ALTER COLUMN id RESTART WITH 3;
 ALTER TABLE transfer_item ALTER COLUMN id RESTART WITH 3;
 ALTER TABLE stocktaking ALTER COLUMN id RESTART WITH 2;
 ALTER TABLE stocktaking_item ALTER COLUMN id RESTART WITH 3;
+
+-- ===========================================================================
+-- 处方种子数据（用于管理员端处方查询页面测试，三端数据互通）
+-- ===========================================================================
+
+-- 处方主表（prescription）
+MERGE INTO prescription (id, patient_id, patient_name, doctor_id, department, status, diagnosis, ai_checked, ai_risk_level, audit_remark, audited_by, audited_at, remark, version, deleted, created_at, updated_at) KEY(id) VALUES
+(1, 1, '李明', 2, '内科', 'APPROVED',       '上呼吸道感染',     TRUE,  'LOW',    '用药合理', 1, CURRENT_TIMESTAMP(), '患者主诉咳嗽3天', 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 2, '王芳', 4, '儿科', 'PENDING_REVIEW', '小儿支气管炎',     TRUE,  'MEDIUM', NULL,       NULL, NULL,                '需关注儿童剂量',  0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, 3, '赵强', 5, '外科', 'REJECTED',       '阑尾炎术后抗感染', FALSE, NULL,     '剂量偏大，请调整后重新提交', 1, CURRENT_TIMESTAMP(), NULL,                0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(4, 1, '李明', 2, '内科', 'DRAFT',          '高血压复查',       FALSE, NULL,     NULL,       NULL, NULL,                '常规复查处方',    0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+
+-- 处方明细（prescription_item）
+MERGE INTO prescription_item (id, prescription_id, drug_name, specification, dosage, usage_method, frequency, quantity, unit, remark, version, deleted, created_at, updated_at) KEY(id) VALUES
+(1, 1, '阿莫西林胶囊', '0.25g*24粒', '每次1粒', '口服', '每日3次', 2, '盒', NULL, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 1, '布洛芬片',     '0.2g*20片',  '每次1片', '口服', '必要时',  1, '盒', NULL, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, 2, '板蓝根颗粒',   '10g*20袋',   '每次1袋', '冲服', '每日2次', 3, '盒', '儿童减半', 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(4, 3, '头孢克洛胶囊', '0.25g*12粒', '每次1粒', '口服', '每日2次', 4, '盒', NULL, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(5, 4, '氨氯地平片',   '5mg*7片',    '每次1片', '口服', '每日1次', 1, '盒', '长效降压', 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+
+-- 重置处方相关自增计数器
+ALTER TABLE prescription ALTER COLUMN id RESTART WITH 5;
+ALTER TABLE prescription_item ALTER COLUMN id RESTART WITH 6;

@@ -123,6 +123,14 @@ export async function apiDelete<T>(url: string, config?: AxiosRequestConfig): Pr
   }
 }
 
+export async function apiPatch<T>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T | BusinessError> {
+  try {
+    return await apiClient.patch(url, data, config) as T
+  } catch {
+    return { code: 'NETWORK_ERROR', message: '网络不可达，请检查网络连接', isBusinessError: true as const } as BusinessError
+  }
+}
+
 export { apiClient }
 
 // ==================== Token Helpers ====================

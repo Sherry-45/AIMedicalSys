@@ -19,7 +19,21 @@ MERGE INTO sys_function (id, code, name, description, enabled, deleted, created_
 (5, 'menu:system',       '系统管理', '系统管理菜单',   true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 5, true, 'DIRECTORY', 'setting',     '/system'),
 (6, 'menu:user',         '用户管理', '用户管理菜单',   true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 1, true, 'MENU',     'user',         '/system/user'),
 (7, 'menu:role',         '角色管理', '角色管理菜单',   true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 2, true, 'MENU',     'role',         '/system/role'),
-(8, 'menu:menu',         '菜单管理', '菜单管理菜单',   true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 3, true, 'MENU',     'menu',         '/system/menu');
+(8, 'menu:menu',         '菜单管理', '菜单管理菜单',   true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 3, true, 'MENU',     'menu',         '/system/menu'),
+-- Phase 4: 医生端菜单
+(9,  'menu:queue',               '叫号台',     '医生叫号台',     true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 6,  true, 'MENU', 'bell',           '/queue'),
+(10, 'menu:prescriptions',       '我的处方',   '处方列表',       true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 7,  true, 'MENU', 'edit-square',    '/prescriptions'),
+(11, 'menu:pharmacy-dispense',   '发药工作台', '药房发药',       true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 8,  true, 'MENU', 'check',          '/pharmacy/dispense'),
+(12, 'menu:pharmacy-refund',     '退药处理',   '药房退药',       true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 9,  true, 'MENU', 'rollback',       '/pharmacy/refund'),
+(13, 'menu:pharmacy-drugs',      '药品目录',   '药品查询',       true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 10, true, 'MENU', 'list',           '/pharmacy/drugs'),
+(14, 'menu:inventory-stock',     '库存查询',   '药库库存',       true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 11, true, 'MENU', 'search',         '/inventory/stock'),
+(15, 'menu:inventory-stocktaking','盘点管理',  '药库盘点',       true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 12, true, 'MENU', 'clipboard',      '/inventory/stocktaking'),
+(16, 'menu:inventory-transfer',  '调拨管理',   '药库调拨',       true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 13, true, 'MENU', 'swap',           '/inventory/transfer'),
+(17, 'menu:window-registration', '线下挂号',   '窗口挂号',       true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 14, true, 'MENU', 'user-add',       '/window/registration'),
+(18, 'menu:window-charging',     '收费退费',   '窗口收费',       true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 15, true, 'MENU', 'money-collect',  '/window/charging'),
+(19, 'menu:window-payments',     '缴费记录',   '缴费查询',       true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 16, true, 'MENU', 'file-done',      '/window/payments'),
+(20, 'menu:health-record-query', '档案查询',   '健康档案查询',   true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 17, true, 'MENU', 'search',         '/health-record/query'),
+(21, 'menu:health-record-trend', '健康趋势',   '长期健康趋势',   true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 18, true, 'MENU', 'line-chart',     '/health-record/trend');
 
 -- 密码统一 password123 (BCrypt)
 MERGE INTO sys_user (id, username, password, nickname, phone, email, enabled, password_change_required, token_version, user_type, deleted, created_at, updated_at) KEY(id) VALUES
@@ -34,15 +48,21 @@ MERGE INTO user_post (user_id, post_id) KEY(user_id, post_id) VALUES
 (1, 1), (2, 2), (3, 3);
 
 MERGE INTO post_function (post_id, function_id) KEY(post_id, function_id) VALUES
+-- 管理员：全部功能
 (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8),
+(1, 9), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14), (1, 15), (1, 16), (1, 17), (1, 18), (1, 19), (1, 20), (1, 21),
+-- 医生：诊疗 + 药房 + 健康档案
 (2, 1), (2, 2), (2, 3), (2, 4),
+(2, 9), (2, 10), (2, 11), (2, 12), (2, 13),
+(2, 20), (2, 21),
+-- 患者：仅仪表盘
 (3, 1);
 
 -- 重置自增计数器，避免后续业务 INSERT 主键冲突
--- 各表当前最大 ID：sys_role=3, sys_post=3, sys_function=8, sys_user=3
+-- 各表当前最大 ID：sys_role=3, sys_post=3, sys_function=21, sys_user=3
 ALTER TABLE sys_role ALTER COLUMN id RESTART WITH 4;
 ALTER TABLE sys_post ALTER COLUMN id RESTART WITH 4;
-ALTER TABLE sys_function ALTER COLUMN id RESTART WITH 9;
+ALTER TABLE sys_function ALTER COLUMN id RESTART WITH 22;
 ALTER TABLE sys_user ALTER COLUMN id RESTART WITH 4;
 
 -- Phase3 种子数据：医生档案（doctor_profile）

@@ -38,7 +38,26 @@ INSERT INTO `sys_function` (`id`, `parent_id`, `code`, `name`, `type`, `path`, `
 (9,  7,    'monitor:loginLog',    '登录日志', 'MENU', '/monitor/loginLog',     'monitor/loginLog/index',     'logininfor',  2, TRUE, 'monitor:loginLog:list',    TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
 (10, NULL, 'patient',             '患者中心', 'MENU', '/patient',              'Layout',                     'user-friend', 3, TRUE, NULL,                       TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
 (11, 10,   'patient:profile',     '个人中心', 'MENU', '/patient/profile',      'patient/profile/index',      'id-card',     1, TRUE, 'patient:profile:view',     TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
-(12, 10,   'patient:health',      '健康档案', 'MENU', '/patient/health',       'patient/health/index',       'heart',       2, TRUE, 'patient:health:view',      TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE);
+(12, 10,   'patient:health',      '健康档案', 'MENU', '/patient/health',       'patient/health/index',       'heart',       2, TRUE, 'patient:health:view',      TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
+-- Phase 4: 医生端菜单
+(13, NULL, 'clinic',              '诊疗工作台', 'MENU', '/clinic',             'Layout',                     'stethoscope', 4, TRUE, NULL,                       TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
+(14, 13,   'clinic:queue',        '叫号台',     'MENU', '/queue',              'clinic/queue/index',         'bell',        1, TRUE, 'clinic:queue:view',        TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
+(15, 13,   'clinic:prescriptions','我的处方',   'MENU', '/prescriptions',      'clinic/prescriptions/index', 'edit-square', 2, TRUE, 'clinic:prescriptions:view',TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
+(16, NULL, 'pharmacy',            '药房管理',   'MENU', '/pharmacy',           'Layout',                     'medicine',    5, TRUE, NULL,                       TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
+(17, 16,   'pharmacy:dispense',   '发药工作台', 'MENU', '/pharmacy/dispense',  'pharmacy/dispense/index',    'check',       1, TRUE, 'pharmacy:dispense:view',   TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
+(18, 16,   'pharmacy:refund',     '退药处理',   'MENU', '/pharmacy/refund',    'pharmacy/refund/index',      'rollback',    2, TRUE, 'pharmacy:refund:view',     TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
+(19, 16,   'pharmacy:drugs',      '药品目录',   'MENU', '/pharmacy/drugs',     'pharmacy/drugs/index',       'list',        3, TRUE, 'pharmacy:drugs:view',      TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
+(20, NULL, 'inventory',           '药库管理',   'MENU', '/inventory',          'Layout',                     'box',         6, TRUE, NULL,                       TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
+(21, 20,   'inventory:stock',     '库存查询',   'MENU', '/inventory/stock',    'inventory/stock/index',      'search',      1, TRUE, 'inventory:stock:view',     TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
+(22, 20,   'inventory:stocktaking','盘点管理',  'MENU', '/inventory/stocktaking','inventory/stocktaking/index','clipboard',  2, TRUE, 'inventory:stocktaking:view',TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
+(23, 20,   'inventory:transfer',  '调拨管理',   'MENU', '/inventory/transfer', 'inventory/transfer/index',   'swap',        3, TRUE, 'inventory:transfer:view',  TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
+(24, NULL, 'window',              '窗口管理',   'MENU', '/window',             'Layout',                     'shop',        7, TRUE, NULL,                       TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
+(25, 24,   'window:registration', '线下挂号',   'MENU', '/window/registration','window/registration/index', 'user-add',    1, TRUE, 'window:registration:view', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
+(26, 24,   'window:charging',     '收费退费',   'MENU', '/window/charging',    'window/charging/index',      'money-collect',2, TRUE, 'window:charging:view',    TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
+(27, 24,   'window:payments',     '缴费记录',   'MENU', '/window/payments',    'window/payments/index',      'file-done',   3, TRUE, 'window:payments:view',     TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
+(28, NULL, 'health-record',       '健康档案',   'MENU', '/health-record',      'Layout',                     'heart',       8, TRUE, NULL,                       TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
+(29, 28,   'health-record:query', '档案查询',   'MENU', '/health-record/query','health-record/query/index',  'search',      1, TRUE, 'health-record:query:view', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE),
+(30, 28,   'health-record:trend', '健康趋势',   'MENU', '/health-record/trend','health-record/trend/index',  'line-chart',  2, TRUE, 'health-record:trend:view', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, FALSE);
 
 -- ---------------------------------------------
 -- 字典类型
@@ -121,11 +140,31 @@ INSERT INTO `patient_profile` (`id`, `user_id`, `real_name`, `gender`, `birth_da
 -- 岗位-功能关联
 -- ---------------------------------------------
 INSERT INTO `post_function` (`post_id`, `function_id`) VALUES
+-- 管理员：全部功能
 (1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8), (1, 9),
+(1, 10), (1, 11), (1, 12),
+(1, 13), (1, 14), (1, 15), (1, 16), (1, 17), (1, 18), (1, 19),
+(1, 20), (1, 21), (1, 22), (1, 23), (1, 24), (1, 25), (1, 26), (1, 27),
+(1, 28), (1, 29), (1, 30),
+-- 门诊医生：诊疗工作台 + 药房 + 健康档案
 (2, 10), (2, 11), (2, 12),
+(2, 13), (2, 14), (2, 15), (2, 16), (2, 17), (2, 18), (2, 19),
+(2, 28), (2, 29), (2, 30),
+-- 检查医生：诊疗工作台 + 健康档案
 (3, 10), (3, 11), (3, 12),
+(3, 13), (3, 14), (3, 15),
+(3, 28), (3, 29), (3, 30),
+-- 检验医生：诊疗工作台 + 健康档案
 (4, 10), (4, 11), (4, 12),
+(4, 13), (4, 14), (4, 15),
+(4, 28), (4, 29), (4, 30),
+-- 药房医生：药房 + 药库 + 窗口 + 健康档案
 (5, 10), (5, 11), (5, 12),
+(5, 16), (5, 17), (5, 18), (5, 19),
+(5, 20), (5, 21), (5, 22), (5, 23),
+(5, 24), (5, 25), (5, 26), (5, 27),
+(5, 28), (5, 29), (5, 30),
+-- 患者：个人中心 + 健康档案
 (6, 11), (6, 12);
 
 SET REFERENTIAL_INTEGRITY TRUE;

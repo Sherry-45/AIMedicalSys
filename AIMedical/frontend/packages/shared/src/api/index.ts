@@ -193,6 +193,12 @@ export const menuApi = {
 // 医生端 API
 export { doctorApi } from './doctor'
 
+// Phase 4 业务模块 API
+export { pharmacyApi } from './pharmacy'
+export { inventoryApi } from './inventory'
+export { windowApi } from './window'
+export { healthRecordApi } from './health-record'
+
 /**
  * AI 智能导诊 API
  */

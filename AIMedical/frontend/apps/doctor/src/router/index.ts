@@ -133,6 +133,76 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../views/ai/AiMedicalRecordGen.vue'),
         meta: { requiresAuth: true },
       },
+      // ---- Phase 4：药房工作台 ----
+      {
+        path: '/pharmacy/dispense',
+        name: 'PharmacyDispense',
+        component: () => import('../views/pharmacy/Dispense.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/pharmacy/refund',
+        name: 'PharmacyRefund',
+        component: () => import('../views/pharmacy/Refund.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/pharmacy/drugs',
+        name: 'PharmacyDrugCatalog',
+        component: () => import('../views/pharmacy/DrugCatalog.vue'),
+        meta: { requiresAuth: true },
+      },
+      // ---- Phase 4：药库管理 ----
+      {
+        path: '/inventory/stock',
+        name: 'InventoryStock',
+        component: () => import('../views/inventory/StockList.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/inventory/stocktaking',
+        name: 'InventoryStocktaking',
+        component: () => import('../views/inventory/Stocktaking.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/inventory/transfer',
+        name: 'InventoryTransfer',
+        component: () => import('../views/inventory/Transfer.vue'),
+        meta: { requiresAuth: true },
+      },
+      // ---- Phase 4：线下窗口 ----
+      {
+        path: '/window/registration',
+        name: 'WindowRegistration',
+        component: () => import('../views/window/Registration.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/window/charging',
+        name: 'WindowCharging',
+        component: () => import('../views/window/Charging.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/window/payments',
+        name: 'WindowPayments',
+        component: () => import('../views/window/PaymentRecords.vue'),
+        meta: { requiresAuth: true },
+      },
+      // ---- Phase 4：健康档案 ----
+      {
+        path: '/health-record/query',
+        name: 'HealthRecordQuery',
+        component: () => import('../views/health-record/HealthRecordQuery.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/health-record/trend',
+        name: 'HealthRecordTrend',
+        component: () => import('../views/health-record/HealthTrend.vue'),
+        meta: { requiresAuth: true },
+      },
     ],
   },
 ]

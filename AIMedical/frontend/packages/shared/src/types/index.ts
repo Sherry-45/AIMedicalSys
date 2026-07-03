@@ -683,3 +683,16 @@ export interface TriageHistoryRecord {
   matched_rules: string
   created_at: string
 }
+
+// ===========================================================================
+// Phase 4 业务模块类型 re-export
+//
+// <p>从子模块重新导出药房 / 药库 / 窗口 / 健康档案的类型，使应用层可通过
+// `@aimedical/shared` 统一导入。各子模块通过 `import type { PageResponse } from './index'`
+// 反向依赖 index.ts 中的基础类型（纯类型导入，编译后被擦除，无运行时循环依赖）。
+// ===========================================================================
+
+export * from './pharmacy'
+export * from './inventory'
+export * from './window'
+export * from './health-record'

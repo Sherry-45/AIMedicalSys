@@ -3,6 +3,7 @@ package com.aimedical.modules.pharmacy.service.impl;
 import com.aimedical.common.exception.GlobalErrorCode;
 import com.aimedical.common.result.PageResponse;
 import com.aimedical.common.result.Result;
+import com.aimedical.modules.commonmodule.event.HealthRecordArchiveEvent;
 import com.aimedical.modules.pharmacy.PharmacyErrorCode;
 import com.aimedical.modules.pharmacy.converter.PharmacyConverter;
 import com.aimedical.modules.pharmacy.dto.DispensingCreateRequest;
@@ -17,6 +18,7 @@ import com.aimedical.modules.pharmacy.repository.DispensingItemRepository;
 import com.aimedical.modules.pharmacy.repository.DispensingRecordRepository;
 import com.aimedical.modules.pharmacy.repository.PharmacyStockRepository;
 import com.aimedical.modules.pharmacy.service.DispensingService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -54,15 +56,18 @@ public class DispensingServiceImpl implements DispensingService {
     private final DispensingItemRepository dispensingItemRepository;
     private final PharmacyStockRepository stockRepository;
     private final PharmacyConverter converter;
+    private final ApplicationEventPublisher eventPublisher;
 
     public DispensingServiceImpl(DispensingRecordRepository dispensingRepository,
                                  DispensingItemRepository dispensingItemRepository,
                                  PharmacyStockRepository stockRepository,
-                                 PharmacyConverter converter) {
+                                 PharmacyConverter converter,
+                                 ApplicationEventPublisher eventPublisher) {
         this.dispensingRepository = dispensingRepository;
         this.dispensingItemRepository = dispensingItemRepository;
         this.stockRepository = stockRepository;
         this.converter = converter;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -209,6 +214,9 @@ public class DispensingServiceImpl implements DispensingService {
         } catch (OptimisticLockingFailureException e) {
             return Result.fail(GlobalErrorCode.CONFLICT);
         }
+
+        // 发药成功后发布健康档案归档事件（事务提交前）
+        publishDispensedEvent(record, items);
 
         return Result.success(converter.toResponse(record, items));
     }
@@ -371,5 +379,23 @@ public class DispensingServiceImpl implements DispensingService {
      */
     private String generateDispensingNo() {
         return "DISP" + System.currentTimeMillis() + String.format("%04d", SECURE_RANDOM.nextInt(10000));
+    }
+
+    /**
+     * 发布发药归档事件，通知 patient 模块归档到患者健康档案。
+     */
+    private void publishDispensedEvent(DispensingRecordEntity record, List<DispensingItemEntity> items) {
+        HealthRecordArchiveEvent event = new HealthRecordArchiveEvent();
+        event.setType(HealthRecordArchiveEvent.Type.DISPENSED);
+        event.setPatientId(record.getPatientId());
+        event.setPatientName(record.getPatientName());
+        event.setRecordId(record.getId());
+        event.setRecordNo(record.getDispensingNo());
+        event.setOrganizationName("药房");
+        int itemCount = items != null ? items.size() : 0;
+        event.setSummary("发药成功，发药单号：" + record.getDispensingNo()
+                + "，共" + itemCount + "项，总数量：" + record.getTotalQuantity());
+        event.setOccurredAt(record.getDispensedAt() != null ? record.getDispensedAt() : LocalDateTime.now());
+        eventPublisher.publishEvent(event);
     }
 }

@@ -9,8 +9,8 @@ import static org.junit.jupiter.api.Assertions.*;
 class WindowErrorCodeTest {
 
     @Test
-    void shouldDefineSixteenCodes() {
-        assertEquals(16, WindowErrorCode.values().length);
+    void shouldDefineSeventeenCodes() {
+        assertEquals(17, WindowErrorCode.values().length);
     }
 
     @Test
@@ -35,6 +35,12 @@ class WindowErrorCodeTest {
     void shouldExposeCodeAndMessageForRegistrationNoDuplicate() {
         assertEquals("REGISTRATION_NO_DUPLICATE", WindowErrorCode.REGISTRATION_NO_DUPLICATE.getCode());
         assertEquals("挂号编号已存在", WindowErrorCode.REGISTRATION_NO_DUPLICATE.getMessage());
+    }
+
+    @Test
+    void shouldExposeCodeAndMessageForRegistrationPaymentAlreadyRefunded() {
+        assertEquals("REGISTRATION_PAYMENT_ALREADY_REFUNDED", WindowErrorCode.REGISTRATION_PAYMENT_ALREADY_REFUNDED.getCode());
+        assertEquals("挂号关联缴费已退款，无法退号", WindowErrorCode.REGISTRATION_PAYMENT_ALREADY_REFUNDED.getMessage());
     }
 
     @Test

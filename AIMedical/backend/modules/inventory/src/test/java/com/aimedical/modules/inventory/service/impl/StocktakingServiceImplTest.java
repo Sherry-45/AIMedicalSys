@@ -488,6 +488,186 @@ class StocktakingServiceImplTest {
         assertNull(existing.getActualQuantity());
     }
 
+    // ==================== submitForApproval ====================
+
+    @Test
+    void submitForApprovalShouldFailWhenNotFound() {
+        when(stocktakingRepository.findById(1L)).thenReturn(Optional.empty());
+
+        Result<StocktakingResponse> result = service.submitForApproval(1L, 9L, "审批员");
+
+        assertEquals(InventoryErrorCode.STOCKTAKING_NOT_FOUND.getCode(), result.getCode());
+        verify(stocktakingRepository, never()).save(any());
+    }
+
+    @Test
+    void submitForApprovalShouldFailWhenNotInProgress() {
+        StocktakingEntity entity = new StocktakingEntity();
+        entity.setStatus("DRAFT");
+        when(stocktakingRepository.findById(1L)).thenReturn(Optional.of(entity));
+
+        Result<StocktakingResponse> result = service.submitForApproval(1L, 9L, "审批员");
+
+        assertEquals(InventoryErrorCode.STOCKTAKING_INVALID_STATE.getCode(), result.getCode());
+        verify(stocktakingRepository, never()).save(any());
+    }
+
+    @Test
+    void submitForApprovalShouldTransitionToPendingApproval() {
+        StocktakingEntity entity = new StocktakingEntity();
+        entity.setId(1L);
+        entity.setStatus("IN_PROGRESS");
+        when(stocktakingRepository.findById(1L)).thenReturn(Optional.of(entity));
+        when(stocktakingRepository.save(any(StocktakingEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(stocktakingItemRepository.findByStocktakingId(1L)).thenReturn(Collections.emptyList());
+        when(converter.toStocktakingResponse(any(StocktakingEntity.class), any()))
+                .thenReturn(new StocktakingResponse());
+
+        Result<StocktakingResponse> result = service.submitForApproval(1L, 9L, "审批员");
+
+        assertEquals("SUCCESS", result.getCode());
+        ArgumentCaptor<StocktakingEntity> captor = ArgumentCaptor.forClass(StocktakingEntity.class);
+        verify(stocktakingRepository).save(captor.capture());
+        assertEquals("PENDING_APPROVAL", captor.getValue().getStatus());
+    }
+
+    @Test
+    void submitForApprovalShouldReturnConflictOnOptimisticLock() {
+        StocktakingEntity entity = new StocktakingEntity();
+        entity.setId(1L);
+        entity.setStatus("IN_PROGRESS");
+        when(stocktakingRepository.findById(1L)).thenReturn(Optional.of(entity));
+        when(stocktakingRepository.save(any(StocktakingEntity.class)))
+                .thenThrow(new OptimisticLockingFailureException("conflict"));
+
+        Result<StocktakingResponse> result = service.submitForApproval(1L, 9L, "审批员");
+
+        assertEquals(GlobalErrorCode.CONFLICT.getCode(), result.getCode());
+    }
+
+    // ==================== approve ====================
+
+    @Test
+    void approveShouldFailWhenNotFound() {
+        when(stocktakingRepository.findById(1L)).thenReturn(Optional.empty());
+
+        Result<StocktakingResponse> result = service.approve(1L, 9L, "审批员");
+
+        assertEquals(InventoryErrorCode.STOCKTAKING_NOT_FOUND.getCode(), result.getCode());
+        verify(stocktakingRepository, never()).save(any());
+    }
+
+    @Test
+    void approveShouldFailWhenNotPendingApproval() {
+        StocktakingEntity entity = new StocktakingEntity();
+        entity.setStatus("IN_PROGRESS");
+        when(stocktakingRepository.findById(1L)).thenReturn(Optional.of(entity));
+
+        Result<StocktakingResponse> result = service.approve(1L, 9L, "审批员");
+
+        assertEquals(InventoryErrorCode.STOCKTAKING_INVALID_STATE.getCode(), result.getCode());
+        verify(stocktakingRepository, never()).save(any());
+    }
+
+    @Test
+    void approveShouldTransitionToApprovedAndRecordApprover() {
+        StocktakingEntity entity = new StocktakingEntity();
+        entity.setId(1L);
+        entity.setStatus("PENDING_APPROVAL");
+        when(stocktakingRepository.findById(1L)).thenReturn(Optional.of(entity));
+        when(stocktakingRepository.save(any(StocktakingEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(stocktakingItemRepository.findByStocktakingId(1L)).thenReturn(Collections.emptyList());
+        when(converter.toStocktakingResponse(any(StocktakingEntity.class), any()))
+                .thenReturn(new StocktakingResponse());
+
+        Result<StocktakingResponse> result = service.approve(1L, 9L, "审批员");
+
+        assertEquals("SUCCESS", result.getCode());
+        ArgumentCaptor<StocktakingEntity> captor = ArgumentCaptor.forClass(StocktakingEntity.class);
+        verify(stocktakingRepository).save(captor.capture());
+        StocktakingEntity saved = captor.getValue();
+        assertEquals("APPROVED", saved.getStatus());
+        assertEquals(9L, saved.getApproverId());
+        assertEquals("审批员", saved.getApproverName());
+        assertNotNull(saved.getApprovedAt());
+    }
+
+    @Test
+    void approveShouldReturnConflictOnOptimisticLock() {
+        StocktakingEntity entity = new StocktakingEntity();
+        entity.setId(1L);
+        entity.setStatus("PENDING_APPROVAL");
+        when(stocktakingRepository.findById(1L)).thenReturn(Optional.of(entity));
+        when(stocktakingRepository.save(any(StocktakingEntity.class)))
+                .thenThrow(new OptimisticLockingFailureException("conflict"));
+
+        Result<StocktakingResponse> result = service.approve(1L, 9L, "审批员");
+
+        assertEquals(GlobalErrorCode.CONFLICT.getCode(), result.getCode());
+    }
+
+    // ==================== reject ====================
+
+    @Test
+    void rejectShouldFailWhenNotFound() {
+        when(stocktakingRepository.findById(1L)).thenReturn(Optional.empty());
+
+        Result<StocktakingResponse> result = service.reject(1L, 9L, "审批员", "数量不符");
+
+        assertEquals(InventoryErrorCode.STOCKTAKING_NOT_FOUND.getCode(), result.getCode());
+        verify(stocktakingRepository, never()).save(any());
+    }
+
+    @Test
+    void rejectShouldFailWhenNotPendingApproval() {
+        StocktakingEntity entity = new StocktakingEntity();
+        entity.setStatus("APPROVED");
+        when(stocktakingRepository.findById(1L)).thenReturn(Optional.of(entity));
+
+        Result<StocktakingResponse> result = service.reject(1L, 9L, "审批员", "数量不符");
+
+        assertEquals(InventoryErrorCode.STOCKTAKING_INVALID_STATE.getCode(), result.getCode());
+        verify(stocktakingRepository, never()).save(any());
+    }
+
+    @Test
+    void rejectShouldTransitionToRejectedAndRecordReason() {
+        StocktakingEntity entity = new StocktakingEntity();
+        entity.setId(1L);
+        entity.setStatus("PENDING_APPROVAL");
+        when(stocktakingRepository.findById(1L)).thenReturn(Optional.of(entity));
+        when(stocktakingRepository.save(any(StocktakingEntity.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(stocktakingItemRepository.findByStocktakingId(1L)).thenReturn(Collections.emptyList());
+        when(converter.toStocktakingResponse(any(StocktakingEntity.class), any()))
+                .thenReturn(new StocktakingResponse());
+
+        Result<StocktakingResponse> result = service.reject(1L, 9L, "审批员", "数量不符");
+
+        assertEquals("SUCCESS", result.getCode());
+        ArgumentCaptor<StocktakingEntity> captor = ArgumentCaptor.forClass(StocktakingEntity.class);
+        verify(stocktakingRepository).save(captor.capture());
+        StocktakingEntity saved = captor.getValue();
+        assertEquals("REJECTED", saved.getStatus());
+        assertEquals(9L, saved.getApproverId());
+        assertEquals("审批员", saved.getApproverName());
+        assertNotNull(saved.getApprovedAt());
+        assertEquals("数量不符", saved.getRejectReason());
+    }
+
+    @Test
+    void rejectShouldReturnConflictOnOptimisticLock() {
+        StocktakingEntity entity = new StocktakingEntity();
+        entity.setId(1L);
+        entity.setStatus("PENDING_APPROVAL");
+        when(stocktakingRepository.findById(1L)).thenReturn(Optional.of(entity));
+        when(stocktakingRepository.save(any(StocktakingEntity.class)))
+                .thenThrow(new OptimisticLockingFailureException("conflict"));
+
+        Result<StocktakingResponse> result = service.reject(1L, 9L, "审批员", "数量不符");
+
+        assertEquals(GlobalErrorCode.CONFLICT.getCode(), result.getCode());
+    }
+
     // ==================== complete ====================
 
     @Test
@@ -500,9 +680,9 @@ class StocktakingServiceImplTest {
     }
 
     @Test
-    void completeShouldFailWhenNotInProgress() {
+    void completeShouldFailWhenNotApproved() {
         StocktakingEntity entity = new StocktakingEntity();
-        entity.setStatus("DRAFT");
+        entity.setStatus("IN_PROGRESS");
         when(stocktakingRepository.findById(1L)).thenReturn(Optional.of(entity));
 
         Result<StocktakingResponse> result = service.complete(1L);
@@ -514,7 +694,7 @@ class StocktakingServiceImplTest {
     void completeShouldComputeSurplusAndAdjustStock() {
         StocktakingEntity entity = new StocktakingEntity();
         entity.setId(1L);
-        entity.setStatus("IN_PROGRESS");
+        entity.setStatus("APPROVED");
         when(stocktakingRepository.findById(1L)).thenReturn(Optional.of(entity));
 
         StocktakingItemEntity item = new StocktakingItemEntity();
@@ -552,7 +732,7 @@ class StocktakingServiceImplTest {
     void completeShouldComputeLossAndAdjustStock() {
         StocktakingEntity entity = new StocktakingEntity();
         entity.setId(1L);
-        entity.setStatus("IN_PROGRESS");
+        entity.setStatus("APPROVED");
         when(stocktakingRepository.findById(1L)).thenReturn(Optional.of(entity));
 
         StocktakingItemEntity item = new StocktakingItemEntity();
@@ -588,7 +768,7 @@ class StocktakingServiceImplTest {
     void completeShouldClampNegativeStockToZero() {
         StocktakingEntity entity = new StocktakingEntity();
         entity.setId(1L);
-        entity.setStatus("IN_PROGRESS");
+        entity.setStatus("APPROVED");
         when(stocktakingRepository.findById(1L)).thenReturn(Optional.of(entity));
 
         StocktakingItemEntity item = new StocktakingItemEntity();
@@ -617,7 +797,7 @@ class StocktakingServiceImplTest {
     void completeShouldSetNoneWhenNoDifference() {
         StocktakingEntity entity = new StocktakingEntity();
         entity.setId(1L);
-        entity.setStatus("IN_PROGRESS");
+        entity.setStatus("APPROVED");
         when(stocktakingRepository.findById(1L)).thenReturn(Optional.of(entity));
 
         StocktakingItemEntity item = new StocktakingItemEntity();
@@ -648,7 +828,7 @@ class StocktakingServiceImplTest {
     void completeShouldUseBookWhenActualIsNull() {
         StocktakingEntity entity = new StocktakingEntity();
         entity.setId(1L);
-        entity.setStatus("IN_PROGRESS");
+        entity.setStatus("APPROVED");
         when(stocktakingRepository.findById(1L)).thenReturn(Optional.of(entity));
 
         StocktakingItemEntity item = new StocktakingItemEntity();
@@ -673,7 +853,7 @@ class StocktakingServiceImplTest {
     void completeShouldHandleNullBookQuantity() {
         StocktakingEntity entity = new StocktakingEntity();
         entity.setId(1L);
-        entity.setStatus("IN_PROGRESS");
+        entity.setStatus("APPROVED");
         when(stocktakingRepository.findById(1L)).thenReturn(Optional.of(entity));
 
         StocktakingItemEntity item = new StocktakingItemEntity();
@@ -703,7 +883,7 @@ class StocktakingServiceImplTest {
     void completeShouldSkipStockAdjustWhenBatchNoBlank() {
         StocktakingEntity entity = new StocktakingEntity();
         entity.setId(1L);
-        entity.setStatus("IN_PROGRESS");
+        entity.setStatus("APPROVED");
         when(stocktakingRepository.findById(1L)).thenReturn(Optional.of(entity));
 
         StocktakingItemEntity item = new StocktakingItemEntity();
@@ -729,7 +909,7 @@ class StocktakingServiceImplTest {
     void completeShouldSkipStockAdjustWhenStockNotFound() {
         StocktakingEntity entity = new StocktakingEntity();
         entity.setId(1L);
-        entity.setStatus("IN_PROGRESS");
+        entity.setStatus("APPROVED");
         when(stocktakingRepository.findById(1L)).thenReturn(Optional.of(entity));
 
         StocktakingItemEntity item = new StocktakingItemEntity();
@@ -755,7 +935,7 @@ class StocktakingServiceImplTest {
     void completeShouldReturnConflictOnOptimisticLock() {
         StocktakingEntity entity = new StocktakingEntity();
         entity.setId(1L);
-        entity.setStatus("IN_PROGRESS");
+        entity.setStatus("APPROVED");
         when(stocktakingRepository.findById(1L)).thenReturn(Optional.of(entity));
 
         StocktakingItemEntity item = new StocktakingItemEntity();

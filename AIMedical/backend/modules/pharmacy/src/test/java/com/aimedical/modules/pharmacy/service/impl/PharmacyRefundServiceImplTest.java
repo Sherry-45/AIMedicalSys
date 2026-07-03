@@ -25,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 
 import java.math.BigDecimal;
@@ -46,13 +47,14 @@ class PharmacyRefundServiceImplTest {
     @Mock private DispensingItemRepository dispensingItemRepository;
     @Mock private PharmacyStockRepository stockRepository;
     @Mock private PharmacyConverter converter;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     private PharmacyRefundServiceImpl service;
 
     @BeforeEach
     void setUp() {
         service = new PharmacyRefundServiceImpl(refundRepository, refundItemRepository,
-                dispensingRepository, dispensingItemRepository, stockRepository, converter);
+                dispensingRepository, dispensingItemRepository, stockRepository, converter, eventPublisher);
     }
 
     // ==================== create ====================

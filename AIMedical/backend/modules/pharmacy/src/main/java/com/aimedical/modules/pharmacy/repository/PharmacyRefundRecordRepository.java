@@ -4,6 +4,7 @@ import com.aimedical.modules.pharmacy.entity.PharmacyRefundRecordEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,7 +15,7 @@ import java.util.Optional;
  * @author AIMedical Team
  * @version 1.0.0
  */
-public interface PharmacyRefundRecordRepository extends JpaRepository<PharmacyRefundRecordEntity, Long> {
+public interface PharmacyRefundRecordRepository extends JpaRepository<PharmacyRefundRecordEntity, Long>, JpaSpecificationExecutor<PharmacyRefundRecordEntity> {
 
     /** 按退药单号查询 */
     Optional<PharmacyRefundRecordEntity> findByRefundNo(String refundNo);

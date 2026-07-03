@@ -2,6 +2,7 @@ package com.aimedical.modules.window.service.impl;
 
 import com.aimedical.common.exception.GlobalErrorCode;
 import com.aimedical.common.result.Result;
+import com.aimedical.modules.commonmodule.event.HealthRecordArchiveEvent;
 import com.aimedical.modules.window.WindowErrorCode;
 import com.aimedical.modules.window.converter.WindowConverter;
 import com.aimedical.modules.window.dto.PayRequest;
@@ -17,6 +18,7 @@ import com.aimedical.modules.window.repository.PaymentItemRepository;
 import com.aimedical.modules.window.repository.PaymentRecordRepository;
 import com.aimedical.modules.window.service.PaymentService;
 import jakarta.persistence.criteria.Predicate;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,13 +52,16 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRecordRepository paymentRecordRepository;
     private final PaymentItemRepository paymentItemRepository;
+    private final ApplicationEventPublisher eventPublisher;
     private final WindowConverter converter;
 
     public PaymentServiceImpl(PaymentRecordRepository paymentRecordRepository,
                               PaymentItemRepository paymentItemRepository,
+                              ApplicationEventPublisher eventPublisher,
                               WindowConverter converter) {
         this.paymentRecordRepository = paymentRecordRepository;
         this.paymentItemRepository = paymentItemRepository;
+        this.eventPublisher = eventPublisher;
         this.converter = converter;
     }
 
@@ -127,6 +133,7 @@ public class PaymentServiceImpl implements PaymentService {
         try {
             PaymentRecordEntity saved = paymentRecordRepository.saveAndFlush(entity);
             List<PaymentItemEntity> items = paymentItemRepository.findByPaymentId(saved.getId());
+            publishPaymentArchiveEvent(saved, HealthRecordArchiveEvent.Type.PAYMENT_PAID, "线下缴费");
             return Result.success(converter.toPaymentResponse(saved, items));
         } catch (OptimisticLockingFailureException e) {
             return Result.fail(GlobalErrorCode.CONFLICT);
@@ -156,6 +163,7 @@ public class PaymentServiceImpl implements PaymentService {
         try {
             PaymentRecordEntity saved = paymentRecordRepository.saveAndFlush(entity);
             List<PaymentItemEntity> items = paymentItemRepository.findByPaymentId(saved.getId());
+            publishPaymentArchiveEvent(saved, HealthRecordArchiveEvent.Type.PAYMENT_REFUNDED, "线下退费");
             return Result.success(converter.toPaymentResponse(saved, items));
         } catch (OptimisticLockingFailureException e) {
             return Result.fail(GlobalErrorCode.CONFLICT);
@@ -228,6 +236,45 @@ public class PaymentServiceImpl implements PaymentService {
         return allItems.stream()
                 .filter(i -> paymentId.equals(i.getPaymentId()))
                 .toList();
+    }
+
+    /**
+     * 发布健康档案归档事件，通知 patient 模块归档缴费/退费记录。
+     *
+     * <p>事件在事务内发布，监听端可通过 {@code @TransactionalEventListener(AFTER_COMMIT)}
+     * 在事务提交后处理，保证只在业务成功落库后才归档。
+     *
+     * @param payment       缴费记录（已落库，含 id 与 paymentNo）
+     * @param type          事件类型（PAYMENT_PAID / PAYMENT_REFUNDED）
+     * @param summaryPrefix 摘要前缀（如 "线下缴费" / "线下退费"）
+     */
+    private void publishPaymentArchiveEvent(PaymentRecordEntity payment,
+                                             HealthRecordArchiveEvent.Type type,
+                                             String summaryPrefix) {
+        HealthRecordArchiveEvent event = new HealthRecordArchiveEvent();
+        event.setPatientId(payment.getPatientId());
+        event.setPatientName(payment.getPatientName());
+        event.setType(type);
+        event.setRecordId(payment.getId());
+        event.setRecordNo(payment.getPaymentNo());
+        event.setOrganizationName("线下窗口");
+        BigDecimal amountYuan = HealthRecordArchiveEvent.Type.PAYMENT_PAID.equals(type)
+                ? payment.getPaidAmount()
+                : payment.getRefundAmount();
+        event.setAmount(toFen(amountYuan));
+        event.setSummary(summaryPrefix + (payment.getPaymentNo() != null ? "：" + payment.getPaymentNo() : ""));
+        event.setOccurredAt(LocalDateTime.now());
+        eventPublisher.publishEvent(event);
+    }
+
+    /**
+     * 将元（BigDecimal，精度 2）转换为分（Long）。
+     */
+    private Long toFen(BigDecimal yuan) {
+        if (yuan == null) {
+            return null;
+        }
+        return yuan.multiply(BigDecimal.valueOf(100)).setScale(0, RoundingMode.HALF_UP).longValue();
     }
 
     private String generatePaymentNo() {

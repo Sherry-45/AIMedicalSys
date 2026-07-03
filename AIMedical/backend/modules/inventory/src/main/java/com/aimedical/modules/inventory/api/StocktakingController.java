@@ -5,6 +5,7 @@ import com.aimedical.modules.commonmodule.auth.CurrentUser;
 import com.aimedical.modules.inventory.dto.request.StocktakingCreateRequest;
 import com.aimedical.modules.inventory.dto.request.StocktakingItemRequest;
 import com.aimedical.modules.inventory.dto.request.StocktakingQueryRequest;
+import com.aimedical.modules.inventory.dto.request.StocktakingRejectRequest;
 import com.aimedical.modules.inventory.dto.response.StocktakingResponse;
 import com.aimedical.modules.inventory.service.StocktakingService;
 import jakarta.validation.Valid;
@@ -69,7 +70,39 @@ public class StocktakingController {
     }
 
     /**
-     * 完成盘点（IN_PROGRESS -> COMPLETED），计算差异并回写库存。
+     * 提交审批（IN_PROGRESS -> PENDING_APPROVAL）。
+     */
+    @PostMapping("/{id}/submit")
+    @PreAuthorize("hasAnyRole('ADMIN','PHARMACIST')")
+    public Result<StocktakingResponse> submitForApproval(@PathVariable Long id) {
+        Long approverId = currentUser.getUserId();
+        String approverName = currentUser.getUsername();
+        return stocktakingService.submitForApproval(id, approverId, approverName);
+    }
+
+    /**
+     * 审批通过（PENDING_APPROVAL -> APPROVED）。
+     */
+    @PostMapping("/{id}/approve")
+    public Result<StocktakingResponse> approve(@PathVariable Long id) {
+        Long approverId = currentUser.getUserId();
+        String approverName = currentUser.getUsername();
+        return stocktakingService.approve(id, approverId, approverName);
+    }
+
+    /**
+     * 驳回（PENDING_APPROVAL -> REJECTED），需填写驳回原因。
+     */
+    @PostMapping("/{id}/reject")
+    public Result<StocktakingResponse> reject(@PathVariable Long id,
+                                              @Valid @RequestBody StocktakingRejectRequest request) {
+        Long approverId = currentUser.getUserId();
+        String approverName = currentUser.getUsername();
+        return stocktakingService.reject(id, approverId, approverName, request.getRejectReason());
+    }
+
+    /**
+     * 完成盘点（APPROVED -> COMPLETED），计算差异并回写库存。
      */
     @PostMapping("/{id}/complete")
     public Result<StocktakingResponse> complete(@PathVariable Long id) {

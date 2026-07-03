@@ -7,6 +7,8 @@ import com.aimedical.modules.window.dto.OfflineRegistrationCancelRequest;
 import com.aimedical.modules.window.dto.OfflineRegistrationCreateRequest;
 import com.aimedical.modules.window.dto.OfflineRegistrationQueryRequest;
 import com.aimedical.modules.window.dto.OfflineRegistrationResponse;
+import com.aimedical.modules.window.dto.PaymentRecordResponse;
+import com.aimedical.modules.window.dto.RefundRequest;
 import com.aimedical.modules.window.entity.OfflineRegistrationEntity;
 import com.aimedical.modules.window.entity.OfflineRegistrationStatus;
 import com.aimedical.modules.window.entity.OfflineRegistrationType;
@@ -19,6 +21,7 @@ import com.aimedical.modules.window.repository.OfflineRegistrationRepository;
 import com.aimedical.modules.window.repository.PaymentItemRepository;
 import com.aimedical.modules.window.repository.PaymentRecordRepository;
 import com.aimedical.modules.window.service.OfflineRegistrationService;
+import com.aimedical.modules.window.service.PaymentService;
 import com.aimedical.modules.window.WindowErrorCode;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -51,15 +54,18 @@ public class OfflineRegistrationServiceImpl implements OfflineRegistrationServic
     private final OfflineRegistrationRepository registrationRepository;
     private final PaymentRecordRepository paymentRecordRepository;
     private final PaymentItemRepository paymentItemRepository;
+    private final PaymentService paymentService;
     private final WindowConverter converter;
 
     public OfflineRegistrationServiceImpl(OfflineRegistrationRepository registrationRepository,
                                           PaymentRecordRepository paymentRecordRepository,
                                           PaymentItemRepository paymentItemRepository,
+                                          PaymentService paymentService,
                                           WindowConverter converter) {
         this.registrationRepository = registrationRepository;
         this.paymentRecordRepository = paymentRecordRepository;
         this.paymentItemRepository = paymentItemRepository;
+        this.paymentService = paymentService;
         this.converter = converter;
     }
 
@@ -147,6 +153,34 @@ public class OfflineRegistrationServiceImpl implements OfflineRegistrationServic
         if (!OfflineRegistrationStatus.ACTIVE.getCode().equals(entity.getStatus())) {
             return Result.fail(WindowErrorCode.REGISTRATION_INVALID_STATE);
         }
+
+        // 退号前处理关联的缴费记录：已支付触发退费，待支付直接取消，已退款则拒绝退号
+        List<PaymentRecordEntity> payments = paymentRecordRepository.findBySourceTypeAndSourceId(
+                PaymentSourceType.REGISTRATION.getCode(), id);
+        for (PaymentRecordEntity payment : payments) {
+            String payStatus = payment.getStatus();
+            if (PaymentStatus.PAID.getCode().equals(payStatus)) {
+                // 已支付：调用退费流程触发退款
+                RefundRequest refundRequest = new RefundRequest();
+                String cancelReason = request.getCancelReason();
+                refundRequest.setRefundReason(StringUtils.hasText(cancelReason)
+                        ? "退号同步退费：" + cancelReason
+                        : "退号同步退费");
+                Result<PaymentRecordResponse> refundResult = paymentService.refund(payment.getId(), refundRequest);
+                if (!GlobalErrorCode.SUCCESS.getCode().equals(refundResult.getCode())) {
+                    return Result.fail(refundResult.getCode(), refundResult.getMessage());
+                }
+            } else if (PaymentStatus.PENDING.getCode().equals(payStatus)) {
+                // 待支付：直接取消缴费记录
+                payment.setStatus(PaymentStatus.CANCELLED.getCode());
+                paymentRecordRepository.save(payment);
+            } else if (PaymentStatus.REFUNDED.getCode().equals(payStatus)) {
+                // 已退款：拒绝退号，避免重复处理
+                return Result.fail(WindowErrorCode.REGISTRATION_PAYMENT_ALREADY_REFUNDED);
+            }
+            // 其他状态（如 RECONCILED、CANCELLED）跳过
+        }
+
         entity.setStatus(OfflineRegistrationStatus.CANCELLED.getCode());
         entity.setCancelReason(request.getCancelReason());
         entity.setCancelTime(LocalDateTime.now());

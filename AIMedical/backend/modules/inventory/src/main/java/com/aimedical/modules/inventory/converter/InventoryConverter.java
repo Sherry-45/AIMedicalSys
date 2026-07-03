@@ -97,6 +97,10 @@ public class InventoryConverter {
         response.setTotalItems(entity.getTotalItems());
         response.setSurplusItems(entity.getSurplusItems());
         response.setLossItems(entity.getLossItems());
+        response.setApproverId(entity.getApproverId());
+        response.setApproverName(entity.getApproverName());
+        response.setApprovedAt(entity.getApprovedAt());
+        response.setRejectReason(entity.getRejectReason());
         response.setRemark(entity.getRemark());
         response.setCreatedAt(entity.getCreatedAt());
         response.setUpdatedAt(entity.getUpdatedAt());

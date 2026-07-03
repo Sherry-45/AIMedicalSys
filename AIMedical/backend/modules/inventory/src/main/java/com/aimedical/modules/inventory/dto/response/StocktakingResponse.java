@@ -25,6 +25,10 @@ public class StocktakingResponse {
     private Integer totalItems;
     private Integer surplusItems;
     private Integer lossItems;
+    private Long approverId;
+    private String approverName;
+    private LocalDateTime approvedAt;
+    private String rejectReason;
     private String remark;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

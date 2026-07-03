@@ -1,11 +1,14 @@
 package com.aimedical.modules.pharmacy.service.impl;
 
 import com.aimedical.common.exception.GlobalErrorCode;
+import com.aimedical.common.result.PageResponse;
 import com.aimedical.common.result.Result;
+import com.aimedical.modules.commonmodule.event.HealthRecordArchiveEvent;
 import com.aimedical.modules.pharmacy.PharmacyErrorCode;
 import com.aimedical.modules.pharmacy.converter.PharmacyConverter;
 import com.aimedical.modules.pharmacy.dto.PharmacyRefundCreateRequest;
 import com.aimedical.modules.pharmacy.dto.PharmacyRefundItemRequest;
+import com.aimedical.modules.pharmacy.dto.PharmacyRefundQueryRequest;
 import com.aimedical.modules.pharmacy.dto.PharmacyRefundResponse;
 import com.aimedical.modules.pharmacy.entity.DispensingItemEntity;
 import com.aimedical.modules.pharmacy.entity.DispensingRecordEntity;
@@ -20,10 +23,17 @@ import com.aimedical.modules.pharmacy.repository.PharmacyRefundItemRepository;
 import com.aimedical.modules.pharmacy.repository.PharmacyRefundRecordRepository;
 import com.aimedical.modules.pharmacy.repository.PharmacyStockRepository;
 import com.aimedical.modules.pharmacy.service.PharmacyRefundService;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
 import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -58,19 +68,22 @@ public class PharmacyRefundServiceImpl implements PharmacyRefundService {
     private final DispensingItemRepository dispensingItemRepository;
     private final PharmacyStockRepository stockRepository;
     private final PharmacyConverter converter;
+    private final ApplicationEventPublisher eventPublisher;
 
     public PharmacyRefundServiceImpl(PharmacyRefundRecordRepository refundRepository,
                                      PharmacyRefundItemRepository refundItemRepository,
                                      DispensingRecordRepository dispensingRepository,
                                      DispensingItemRepository dispensingItemRepository,
                                      PharmacyStockRepository stockRepository,
-                                     PharmacyConverter converter) {
+                                     PharmacyConverter converter,
+                                     ApplicationEventPublisher eventPublisher) {
         this.refundRepository = refundRepository;
         this.refundItemRepository = refundItemRepository;
         this.dispensingRepository = dispensingRepository;
         this.dispensingItemRepository = dispensingItemRepository;
         this.stockRepository = stockRepository;
         this.converter = converter;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -244,6 +257,9 @@ public class PharmacyRefundServiceImpl implements PharmacyRefundService {
             return Result.fail(GlobalErrorCode.CONFLICT);
         }
 
+        // 退药成功后发布健康档案归档事件（事务提交前）
+        publishRefundedEvent(refund, refundItems);
+
         return Result.success(converter.toResponse(refund, refundItems));
     }
 
@@ -300,6 +316,54 @@ public class PharmacyRefundServiceImpl implements PharmacyRefundService {
         return Result.success(converter.toResponse(refund, items));
     }
 
+    @Override
+    public Result<PageResponse<PharmacyRefundResponse>> query(PharmacyRefundQueryRequest request) {
+        Pageable pageable = PageRequest.of(request.getPage(), request.getSize(),
+                Sort.by(Sort.Direction.DESC, "createdAt"));
+        Long patientId = request.getPatientId();
+        String status = request.getStatus();
+        LocalDateTime startTime = request.getStartTime();
+        LocalDateTime endTime = request.getEndTime();
+
+        Specification<PharmacyRefundRecordEntity> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (patientId != null) {
+                predicates.add(cb.equal(root.get("patientId"), patientId));
+            }
+            if (status != null && !status.trim().isEmpty()) {
+                predicates.add(cb.equal(root.get("status"), status.trim()));
+            }
+            if (startTime != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), startTime));
+            }
+            if (endTime != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), endTime));
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        Page<PharmacyRefundRecordEntity> page = refundRepository.findAll(spec, pageable);
+
+        // 批量加载明细避免 N+1
+        List<PharmacyRefundResponse> content = new ArrayList<>();
+        if (!page.isEmpty()) {
+            List<Long> refundIds = page.getContent().stream()
+                    .map(PharmacyRefundRecordEntity::getId)
+                    .toList();
+            List<PharmacyRefundItemEntity> allItems = refundItemRepository.findByRefundIdIn(refundIds);
+            for (PharmacyRefundRecordEntity refund : page.getContent()) {
+                List<PharmacyRefundItemEntity> refundItems = allItems.stream()
+                        .filter(item -> item.getRefundId().equals(refund.getId()))
+                        .toList();
+                content.add(converter.toResponse(refund, refundItems));
+            }
+        }
+
+        PageResponse<PharmacyRefundResponse> pageResponse = PageResponse.of(content, page.getTotalElements(),
+                request.getPage(), request.getSize());
+        return Result.success(pageResponse);
+    }
+
     /**
      * 回补药房库存。
      * 优先回补到原批次（若存在），否则新建库存记录。
@@ -342,5 +406,23 @@ public class PharmacyRefundServiceImpl implements PharmacyRefundService {
      */
     private String generateRefundNo() {
         return "RFD" + System.currentTimeMillis() + String.format("%04d", SECURE_RANDOM.nextInt(10000));
+    }
+
+    /**
+     * 发布退药归档事件，通知 patient 模块归档到患者健康档案。
+     */
+    private void publishRefundedEvent(PharmacyRefundRecordEntity refund, List<PharmacyRefundItemEntity> items) {
+        HealthRecordArchiveEvent event = new HealthRecordArchiveEvent();
+        event.setType(HealthRecordArchiveEvent.Type.REFUNDED);
+        event.setPatientId(refund.getPatientId());
+        event.setPatientName(refund.getPatientName());
+        event.setRecordId(refund.getId());
+        event.setRecordNo(refund.getRefundNo());
+        event.setOrganizationName("药房");
+        int itemCount = items != null ? items.size() : 0;
+        event.setSummary("退药完成，退药单号：" + refund.getRefundNo()
+                + "，共" + itemCount + "项，总数量：" + refund.getTotalQuantity());
+        event.setOccurredAt(refund.getRefundedAt() != null ? refund.getRefundedAt() : LocalDateTime.now());
+        eventPublisher.publishEvent(event);
     }
 }

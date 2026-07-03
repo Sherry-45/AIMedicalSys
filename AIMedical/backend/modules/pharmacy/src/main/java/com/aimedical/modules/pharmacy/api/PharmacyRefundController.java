@@ -1,14 +1,17 @@
 package com.aimedical.modules.pharmacy.api;
 
 import com.aimedical.common.exception.GlobalErrorCode;
+import com.aimedical.common.result.PageResponse;
 import com.aimedical.common.result.Result;
 import com.aimedical.modules.commonmodule.auth.CurrentUser;
 import com.aimedical.modules.pharmacy.dto.PharmacyRefundCreateRequest;
+import com.aimedical.modules.pharmacy.dto.PharmacyRefundQueryRequest;
 import com.aimedical.modules.pharmacy.dto.PharmacyRefundResponse;
 import com.aimedical.modules.pharmacy.service.PharmacyRefundService;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -73,5 +76,14 @@ public class PharmacyRefundController {
     @GetMapping("/{id}")
     public Result<PharmacyRefundResponse> getById(@PathVariable Long id) {
         return refundService.getById(id);
+    }
+
+    /**
+     * 分页查询退药记录，支持按 patientId/status/startTime/endTime 过滤。
+     */
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','PHARMACIST','DOCTOR')")
+    public Result<PageResponse<PharmacyRefundResponse>> query(@Valid @ModelAttribute PharmacyRefundQueryRequest request) {
+        return refundService.query(request);
     }
 }

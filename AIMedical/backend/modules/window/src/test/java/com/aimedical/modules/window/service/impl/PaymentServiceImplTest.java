@@ -2,6 +2,7 @@ package com.aimedical.modules.window.service.impl;
 
 import com.aimedical.common.exception.GlobalErrorCode;
 import com.aimedical.common.result.Result;
+import com.aimedical.modules.commonmodule.event.HealthRecordArchiveEvent;
 import com.aimedical.modules.window.WindowErrorCode;
 import com.aimedical.modules.window.converter.WindowConverter;
 import com.aimedical.modules.window.dto.PayRequest;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -45,13 +47,15 @@ class PaymentServiceImplTest {
 
     @Mock private PaymentRecordRepository paymentRecordRepository;
     @Mock private PaymentItemRepository paymentItemRepository;
+    @Mock private ApplicationEventPublisher eventPublisher;
     @Mock private WindowConverter converter;
 
     private PaymentServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new PaymentServiceImpl(paymentRecordRepository, paymentItemRepository, converter);
+        service = new PaymentServiceImpl(paymentRecordRepository, paymentItemRepository,
+                eventPublisher, converter);
     }
 
     // ==================== create ====================
@@ -292,6 +296,37 @@ class PaymentServiceImplTest {
         assertNull(result.getData());
     }
 
+    @Test
+    void payShouldPublishArchiveEventOnSuccess() {
+        PaymentRecordEntity entity = buildPayment(1L, "PENDING", new BigDecimal("100.00"));
+        when(paymentRecordRepository.findById(1L)).thenReturn(Optional.of(entity));
+        when(paymentRecordRepository.saveAndFlush(any(PaymentRecordEntity.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+        when(paymentItemRepository.findByPaymentId(1L)).thenReturn(List.of());
+        when(converter.toPaymentResponse(any(PaymentRecordEntity.class), anyList()))
+                .thenReturn(new PaymentRecordResponse());
+
+        PayRequest req = new PayRequest();
+        req.setPaymentMethod("WECHAT");
+        req.setPaidAmount(new BigDecimal("100.00"));
+
+        service.pay(1L, req);
+
+        ArgumentCaptor<HealthRecordArchiveEvent> captor =
+                ArgumentCaptor.forClass(HealthRecordArchiveEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        HealthRecordArchiveEvent event = captor.getValue();
+        assertEquals(HealthRecordArchiveEvent.Type.PAYMENT_PAID, event.getType());
+        assertEquals(100L, event.getPatientId());
+        assertEquals("张三", event.getPatientName());
+        assertEquals(1L, event.getRecordId());
+        assertEquals("PAY1", event.getRecordNo());
+        assertEquals("线下窗口", event.getOrganizationName());
+        assertEquals(10000L, event.getAmount()); // 100.00 元 = 10000 分
+        assertTrue(event.getSummary().contains("线下缴费"));
+        assertNotNull(event.getOccurredAt());
+    }
+
     // ==================== refund ====================
 
     @Test
@@ -405,6 +440,37 @@ class PaymentServiceImplTest {
 
         assertEquals(GlobalErrorCode.CONFLICT.getCode(), result.getCode());
         assertNull(result.getData());
+    }
+
+    @Test
+    void refundShouldPublishArchiveEventOnSuccess() {
+        PaymentRecordEntity entity = buildPayment(1L, "PAID", new BigDecimal("100.00"));
+        entity.setPaidAmount(new BigDecimal("100.00"));
+        when(paymentRecordRepository.findById(1L)).thenReturn(Optional.of(entity));
+        when(paymentRecordRepository.saveAndFlush(any(PaymentRecordEntity.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+        when(paymentItemRepository.findByPaymentId(1L)).thenReturn(List.of());
+        when(converter.toPaymentResponse(any(PaymentRecordEntity.class), anyList()))
+                .thenReturn(new PaymentRecordResponse());
+
+        RefundRequest req = new RefundRequest();
+        req.setRefundReason("误缴");
+
+        service.refund(1L, req);
+
+        ArgumentCaptor<HealthRecordArchiveEvent> captor =
+                ArgumentCaptor.forClass(HealthRecordArchiveEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        HealthRecordArchiveEvent event = captor.getValue();
+        assertEquals(HealthRecordArchiveEvent.Type.PAYMENT_REFUNDED, event.getType());
+        assertEquals(100L, event.getPatientId());
+        assertEquals("张三", event.getPatientName());
+        assertEquals(1L, event.getRecordId());
+        assertEquals("PAY1", event.getRecordNo());
+        assertEquals("线下窗口", event.getOrganizationName());
+        assertEquals(10000L, event.getAmount()); // 100.00 元 = 10000 分
+        assertTrue(event.getSummary().contains("线下退费"));
+        assertNotNull(event.getOccurredAt());
     }
 
     // ==================== getById ====================

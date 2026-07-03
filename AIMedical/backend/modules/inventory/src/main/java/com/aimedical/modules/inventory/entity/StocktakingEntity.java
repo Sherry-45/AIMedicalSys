@@ -13,7 +13,8 @@ import java.time.LocalDateTime;
 /**
  * 盘点单实体。
  *
- * <p>状态机：DRAFT -> IN_PROGRESS -> COMPLETED (或 CANCELLED)。
+ * <p>状态机：DRAFT -> IN_PROGRESS -> PENDING_APPROVAL -> APPROVED -> COMPLETED。
+ * 可从 PENDING_APPROVAL -> REJECTED，可从 DRAFT/IN_PROGRESS -> CANCELLED。
  * 明细通过 {@link StocktakingItemEntity} 以 stocktakingId 外键关联，
  * 不使用 JPA 关系映射。
  *
@@ -35,7 +36,7 @@ public class StocktakingEntity extends BaseEntity {
     @Column(name = "stocktaking_type", nullable = false, length = 20)
     private String stocktakingType = StocktakingType.FULL.getCode();
 
-    /** 状态 DRAFT/IN_PROGRESS/COMPLETED/CANCELLED */
+    /** 状态 DRAFT/IN_PROGRESS/PENDING_APPROVAL/APPROVED/REJECTED/COMPLETED/CANCELLED */
     @Column(name = "status", nullable = false, length = 20)
     private String status = StocktakingStatus.DRAFT.getCode();
 
@@ -66,6 +67,22 @@ public class StocktakingEntity extends BaseEntity {
     /** 盘亏项数 */
     @Column(name = "loss_items")
     private Integer lossItems;
+
+    /** 审批人ID */
+    @Column(name = "approver_id")
+    private Long approverId;
+
+    /** 审批人姓名 */
+    @Column(name = "approver_name", length = 64)
+    private String approverName;
+
+    /** 审批时间 */
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
+    /** 驳回原因 */
+    @Column(name = "reject_reason", length = 500)
+    private String rejectReason;
 
     /** 备注 */
     @Column(name = "remark", length = 500)

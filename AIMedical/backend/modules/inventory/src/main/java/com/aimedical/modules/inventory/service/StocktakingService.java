@@ -12,7 +12,8 @@ import java.util.List;
 /**
  * 盘点服务。
  *
- * <p>状态机：DRAFT -> IN_PROGRESS -> COMPLETED (或 CANCELLED)。
+ * <p>状态机：DRAFT -> IN_PROGRESS -> PENDING_APPROVAL -> APPROVED -> COMPLETED。
+ * 可从 PENDING_APPROVAL -> REJECTED，可从 DRAFT/IN_PROGRESS -> CANCELLED。
  *
  * @author AIMedical Team
  * @version 1.0.0
@@ -24,6 +25,12 @@ public interface StocktakingService {
     Result<StocktakingResponse> start(Long id);
 
     Result<StocktakingResponse> submitActual(Long id, List<StocktakingItemRequest> items);
+
+    Result<StocktakingResponse> submitForApproval(Long id, Long approverId, String approverName);
+
+    Result<StocktakingResponse> approve(Long id, Long approverId, String approverName);
+
+    Result<StocktakingResponse> reject(Long id, Long approverId, String approverName, String rejectReason);
 
     Result<StocktakingResponse> complete(Long id);
 

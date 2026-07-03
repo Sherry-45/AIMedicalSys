@@ -22,6 +22,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -47,13 +48,14 @@ class DispensingServiceImplTest {
     @Mock private DispensingItemRepository dispensingItemRepository;
     @Mock private PharmacyStockRepository stockRepository;
     @Mock private PharmacyConverter converter;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     private DispensingServiceImpl service;
 
     @BeforeEach
     void setUp() {
         service = new DispensingServiceImpl(dispensingRepository, dispensingItemRepository,
-                stockRepository, converter);
+                stockRepository, converter, eventPublisher);
     }
 
     // ==================== create ====================

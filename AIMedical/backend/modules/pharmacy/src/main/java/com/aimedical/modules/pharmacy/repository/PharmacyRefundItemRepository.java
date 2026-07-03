@@ -16,6 +16,9 @@ public interface PharmacyRefundItemRepository extends JpaRepository<PharmacyRefu
     /** 按退药记录ID查询所有明细 */
     List<PharmacyRefundItemEntity> findByRefundId(Long refundId);
 
+    /** 按退药记录ID列表批量查询明细（用于分页场景避免 N+1） */
+    List<PharmacyRefundItemEntity> findByRefundIdIn(List<Long> refundIds);
+
     /** 按原发药明细ID查询关联的退药明细（用于累计退药数量校验） */
     List<PharmacyRefundItemEntity> findByDispensingItemId(Long dispensingItemId);
 }

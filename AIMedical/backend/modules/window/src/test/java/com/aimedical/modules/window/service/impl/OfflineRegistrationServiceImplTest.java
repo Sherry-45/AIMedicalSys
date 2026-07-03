@@ -8,13 +8,17 @@ import com.aimedical.modules.window.dto.OfflineRegistrationCancelRequest;
 import com.aimedical.modules.window.dto.OfflineRegistrationCreateRequest;
 import com.aimedical.modules.window.dto.OfflineRegistrationQueryRequest;
 import com.aimedical.modules.window.dto.OfflineRegistrationResponse;
+import com.aimedical.modules.window.dto.PaymentRecordResponse;
+import com.aimedical.modules.window.dto.RefundRequest;
 import com.aimedical.modules.window.entity.OfflineRegistrationEntity;
 import com.aimedical.modules.window.entity.PaymentItemEntity;
 import com.aimedical.modules.window.entity.PaymentRecordEntity;
 import com.aimedical.modules.window.entity.PaymentSourceType;
+import com.aimedical.modules.window.entity.PaymentStatus;
 import com.aimedical.modules.window.repository.OfflineRegistrationRepository;
 import com.aimedical.modules.window.repository.PaymentItemRepository;
 import com.aimedical.modules.window.repository.PaymentRecordRepository;
+import com.aimedical.modules.window.service.PaymentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +38,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -45,6 +50,7 @@ class OfflineRegistrationServiceImplTest {
     @Mock private OfflineRegistrationRepository registrationRepository;
     @Mock private PaymentRecordRepository paymentRecordRepository;
     @Mock private PaymentItemRepository paymentItemRepository;
+    @Mock private PaymentService paymentService;
     @Mock private WindowConverter converter;
 
     private OfflineRegistrationServiceImpl service;
@@ -52,7 +58,8 @@ class OfflineRegistrationServiceImplTest {
     @BeforeEach
     void setUp() {
         service = new OfflineRegistrationServiceImpl(
-                registrationRepository, paymentRecordRepository, paymentItemRepository, converter);
+                registrationRepository, paymentRecordRepository, paymentItemRepository,
+                paymentService, converter);
     }
 
     // ==================== create ====================
@@ -268,6 +275,110 @@ class OfflineRegistrationServiceImplTest {
         assertNull(result.getData());
     }
 
+    @Test
+    void cancelShouldRefundWhenAssociatedPaymentPaid() {
+        OfflineRegistrationEntity entity = buildRegistration(1L, "ACTIVE");
+        when(registrationRepository.findById(1L)).thenReturn(Optional.of(entity));
+        PaymentRecordEntity payment = buildPayment(10L, "PAID");
+        payment.setPaidAmount(new BigDecimal("50.00"));
+        when(paymentRecordRepository.findBySourceTypeAndSourceId(
+                PaymentSourceType.REGISTRATION.getCode(), 1L)).thenReturn(List.of(payment));
+        when(paymentService.refund(eq(10L), any(RefundRequest.class)))
+                .thenReturn(Result.success(new PaymentRecordResponse()));
+        when(registrationRepository.saveAndFlush(any(OfflineRegistrationEntity.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+        when(converter.toRegistrationResponse(any(OfflineRegistrationEntity.class)))
+                .thenReturn(new OfflineRegistrationResponse());
+
+        OfflineRegistrationCancelRequest req = new OfflineRegistrationCancelRequest();
+        req.setCancelReason("不想看了");
+
+        Result<OfflineRegistrationResponse> result = service.cancel(1L, req);
+
+        assertEquals("SUCCESS", result.getCode());
+        // 验证调用了退费且退费原因包含取消原因
+        ArgumentCaptor<RefundRequest> refundCaptor = ArgumentCaptor.forClass(RefundRequest.class);
+        verify(paymentService).refund(eq(10L), refundCaptor.capture());
+        assertTrue(refundCaptor.getValue().getRefundReason().contains("退号同步退费"));
+        assertTrue(refundCaptor.getValue().getRefundReason().contains("不想看了"));
+        // 验证挂号状态已取消
+        ArgumentCaptor<OfflineRegistrationEntity> regCaptor =
+                ArgumentCaptor.forClass(OfflineRegistrationEntity.class);
+        verify(registrationRepository).saveAndFlush(regCaptor.capture());
+        assertEquals("CANCELLED", regCaptor.getValue().getStatus());
+    }
+
+    @Test
+    void cancelShouldCancelPendingPayment() {
+        OfflineRegistrationEntity entity = buildRegistration(1L, "ACTIVE");
+        when(registrationRepository.findById(1L)).thenReturn(Optional.of(entity));
+        PaymentRecordEntity payment = buildPayment(10L, "PENDING");
+        when(paymentRecordRepository.findBySourceTypeAndSourceId(
+                PaymentSourceType.REGISTRATION.getCode(), 1L)).thenReturn(List.of(payment));
+        when(registrationRepository.saveAndFlush(any(OfflineRegistrationEntity.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+        when(converter.toRegistrationResponse(any(OfflineRegistrationEntity.class)))
+                .thenReturn(new OfflineRegistrationResponse());
+
+        OfflineRegistrationCancelRequest req = new OfflineRegistrationCancelRequest();
+        req.setCancelReason("不想看了");
+
+        Result<OfflineRegistrationResponse> result = service.cancel(1L, req);
+
+        assertEquals("SUCCESS", result.getCode());
+        // 验证待支付缴费记录被置为 CANCELLED
+        ArgumentCaptor<PaymentRecordEntity> payCaptor = ArgumentCaptor.forClass(PaymentRecordEntity.class);
+        verify(paymentRecordRepository).save(payCaptor.capture());
+        assertEquals("CANCELLED", payCaptor.getValue().getStatus());
+        // 验证未调用退费
+        verify(paymentService, never()).refund(any(), any());
+        // 验证挂号状态已取消
+        ArgumentCaptor<OfflineRegistrationEntity> regCaptor =
+                ArgumentCaptor.forClass(OfflineRegistrationEntity.class);
+        verify(registrationRepository).saveAndFlush(regCaptor.capture());
+        assertEquals("CANCELLED", regCaptor.getValue().getStatus());
+    }
+
+    @Test
+    void cancelShouldFailWhenAssociatedPaymentAlreadyRefunded() {
+        OfflineRegistrationEntity entity = buildRegistration(1L, "ACTIVE");
+        when(registrationRepository.findById(1L)).thenReturn(Optional.of(entity));
+        PaymentRecordEntity payment = buildPayment(10L, "REFUNDED");
+        when(paymentRecordRepository.findBySourceTypeAndSourceId(
+                PaymentSourceType.REGISTRATION.getCode(), 1L)).thenReturn(List.of(payment));
+
+        OfflineRegistrationCancelRequest req = new OfflineRegistrationCancelRequest();
+        req.setCancelReason("取消");
+
+        Result<OfflineRegistrationResponse> result = service.cancel(1L, req);
+
+        assertEquals(WindowErrorCode.REGISTRATION_PAYMENT_ALREADY_REFUNDED.getCode(), result.getCode());
+        assertNull(result.getData());
+        verify(registrationRepository, never()).saveAndFlush(any());
+        verify(paymentService, never()).refund(any(), any());
+    }
+
+    @Test
+    void cancelShouldPropagateFailureWhenRefundFails() {
+        OfflineRegistrationEntity entity = buildRegistration(1L, "ACTIVE");
+        when(registrationRepository.findById(1L)).thenReturn(Optional.of(entity));
+        PaymentRecordEntity payment = buildPayment(10L, "PAID");
+        payment.setPaidAmount(new BigDecimal("50.00"));
+        when(paymentRecordRepository.findBySourceTypeAndSourceId(
+                PaymentSourceType.REGISTRATION.getCode(), 1L)).thenReturn(List.of(payment));
+        when(paymentService.refund(eq(10L), any(RefundRequest.class)))
+                .thenReturn(Result.fail(WindowErrorCode.REFUND_NOT_PAID));
+
+        OfflineRegistrationCancelRequest req = new OfflineRegistrationCancelRequest();
+        req.setCancelReason("取消");
+
+        Result<OfflineRegistrationResponse> result = service.cancel(1L, req);
+
+        assertEquals(WindowErrorCode.REFUND_NOT_PAID.getCode(), result.getCode());
+        assertNull(result.getData());
+        verify(registrationRepository, never()).saveAndFlush(any());
+    }
+
     // ==================== getById ====================
 
     @Test
@@ -351,6 +462,18 @@ class OfflineRegistrationServiceImplTest {
         entity.setRegistrationNo("OFR" + id);
         entity.setPatientId(100L);
         entity.setPatientName("张三");
+        entity.setStatus(status);
+        return entity;
+    }
+
+    private PaymentRecordEntity buildPayment(Long id, String status) {
+        PaymentRecordEntity entity = new PaymentRecordEntity();
+        entity.setId(id);
+        entity.setPaymentNo("PAY" + id);
+        entity.setPatientId(100L);
+        entity.setPatientName("张三");
+        entity.setSourceId(1L);
+        entity.setSourceType(PaymentSourceType.REGISTRATION.getCode());
         entity.setStatus(status);
         return entity;
     }

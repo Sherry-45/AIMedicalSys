@@ -1,7 +1,9 @@
 package com.aimedical.modules.pharmacy.service;
 
+import com.aimedical.common.result.PageResponse;
 import com.aimedical.common.result.Result;
 import com.aimedical.modules.pharmacy.dto.PharmacyRefundCreateRequest;
+import com.aimedical.modules.pharmacy.dto.PharmacyRefundQueryRequest;
 import com.aimedical.modules.pharmacy.dto.PharmacyRefundResponse;
 
 /**
@@ -49,4 +51,12 @@ public interface PharmacyRefundService {
      * @return 退药记录
      */
     Result<PharmacyRefundResponse> getById(Long refundId);
+
+    /**
+     * 分页查询退药记录，支持按 patientId/status/startTime/endTime 过滤。
+     *
+     * @param request 查询条件
+     * @return 分页结果
+     */
+    Result<PageResponse<PharmacyRefundResponse>> query(PharmacyRefundQueryRequest request);
 }

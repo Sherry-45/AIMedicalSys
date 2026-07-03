@@ -8,12 +8,13 @@ import static org.junit.jupiter.api.Assertions.*;
 class PaymentStatusTest {
 
     @Test
-    void shouldDefineFourStatuses() {
-        assertEquals(4, PaymentStatus.values().length);
+    void shouldDefineFiveStatuses() {
+        assertEquals(5, PaymentStatus.values().length);
         assertNotNull(PaymentStatus.valueOf("PENDING"));
         assertNotNull(PaymentStatus.valueOf("PAID"));
         assertNotNull(PaymentStatus.valueOf("REFUNDED"));
         assertNotNull(PaymentStatus.valueOf("RECONCILED"));
+        assertNotNull(PaymentStatus.valueOf("CANCELLED"));
     }
 
     @Test
@@ -38,6 +39,12 @@ class PaymentStatusTest {
     void shouldExposeCodeAndDescForReconciled() {
         assertEquals("RECONCILED", PaymentStatus.RECONCILED.getCode());
         assertEquals("已对账", PaymentStatus.RECONCILED.getDesc());
+    }
+
+    @Test
+    void shouldExposeCodeAndDescForCancelled() {
+        assertEquals("CANCELLED", PaymentStatus.CANCELLED.getCode());
+        assertEquals("已取消", PaymentStatus.CANCELLED.getDesc());
     }
 
     @Test

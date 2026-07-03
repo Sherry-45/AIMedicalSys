@@ -35,12 +35,15 @@ import java.util.Optional;
 /**
  * 盘点服务实现。
  *
- * <p>状态机：DRAFT -> IN_PROGRESS -> COMPLETED (或 CANCELLED)。
+ * <p>状态机：DRAFT -> IN_PROGRESS -> PENDING_APPROVAL -> APPROVED -> COMPLETED。
  * <ul>
  *   <li>create：创建盘点单与明细，自动从库存批次填充账面数量</li>
  *   <li>start：DRAFT -> IN_PROGRESS，记录开始时间</li>
  *   <li>submitActual：提交实际数量，更新明细的实际数量</li>
- *   <li>complete：IN_PROGRESS -> COMPLETED，计算差异、盘盈/盘亏项数，回写库存</li>
+ *   <li>submitForApproval：IN_PROGRESS -> PENDING_APPROVAL，提交审批</li>
+ *   <li>approve：PENDING_APPROVAL -> APPROVED，记录审批人和审批时间</li>
+ *   <li>reject：PENDING_APPROVAL -> REJECTED，记录驳回原因</li>
+ *   <li>complete：APPROVED -> COMPLETED，计算差异、盘盈/盘亏项数，回写库存</li>
  *   <li>cancel：DRAFT/IN_PROGRESS -> CANCELLED</li>
  * </ul>
  *
@@ -171,13 +174,87 @@ public class StocktakingServiceImpl implements StocktakingService {
 
     @Override
     @Transactional
+    public Result<StocktakingResponse> submitForApproval(Long id, Long approverId, String approverName) {
+        Optional<StocktakingEntity> opt = stocktakingRepository.findById(id);
+        if (opt.isEmpty()) {
+            return Result.fail(InventoryErrorCode.STOCKTAKING_NOT_FOUND);
+        }
+        StocktakingEntity entity = opt.get();
+        // 仅 IN_PROGRESS 状态可提交审批
+        if (!StocktakingStatus.IN_PROGRESS.getCode().equals(entity.getStatus())) {
+            return Result.fail(InventoryErrorCode.STOCKTAKING_INVALID_STATE);
+        }
+        entity.setStatus(StocktakingStatus.PENDING_APPROVAL.getCode());
+        try {
+            StocktakingEntity saved = stocktakingRepository.save(entity);
+            List<StocktakingItemEntity> items = stocktakingItemRepository.findByStocktakingId(id);
+            return Result.success(converter.toStocktakingResponse(saved, items));
+        } catch (OptimisticLockingFailureException e) {
+            return Result.fail(GlobalErrorCode.CONFLICT);
+        }
+    }
+
+    @Override
+    @Transactional
+    public Result<StocktakingResponse> approve(Long id, Long approverId, String approverName) {
+        Optional<StocktakingEntity> opt = stocktakingRepository.findById(id);
+        if (opt.isEmpty()) {
+            return Result.fail(InventoryErrorCode.STOCKTAKING_NOT_FOUND);
+        }
+        StocktakingEntity entity = opt.get();
+        // 仅 PENDING_APPROVAL 状态可审批通过
+        if (!StocktakingStatus.PENDING_APPROVAL.getCode().equals(entity.getStatus())) {
+            return Result.fail(InventoryErrorCode.STOCKTAKING_INVALID_STATE);
+        }
+        entity.setStatus(StocktakingStatus.APPROVED.getCode());
+        entity.setApproverId(approverId);
+        entity.setApproverName(approverName);
+        entity.setApprovedAt(LocalDateTime.now());
+        try {
+            StocktakingEntity saved = stocktakingRepository.save(entity);
+            List<StocktakingItemEntity> items = stocktakingItemRepository.findByStocktakingId(id);
+            return Result.success(converter.toStocktakingResponse(saved, items));
+        } catch (OptimisticLockingFailureException e) {
+            return Result.fail(GlobalErrorCode.CONFLICT);
+        }
+    }
+
+    @Override
+    @Transactional
+    public Result<StocktakingResponse> reject(Long id, Long approverId, String approverName, String rejectReason) {
+        Optional<StocktakingEntity> opt = stocktakingRepository.findById(id);
+        if (opt.isEmpty()) {
+            return Result.fail(InventoryErrorCode.STOCKTAKING_NOT_FOUND);
+        }
+        StocktakingEntity entity = opt.get();
+        // 仅 PENDING_APPROVAL 状态可驳回
+        if (!StocktakingStatus.PENDING_APPROVAL.getCode().equals(entity.getStatus())) {
+            return Result.fail(InventoryErrorCode.STOCKTAKING_INVALID_STATE);
+        }
+        entity.setStatus(StocktakingStatus.REJECTED.getCode());
+        entity.setApproverId(approverId);
+        entity.setApproverName(approverName);
+        entity.setApprovedAt(LocalDateTime.now());
+        entity.setRejectReason(rejectReason);
+        try {
+            StocktakingEntity saved = stocktakingRepository.save(entity);
+            List<StocktakingItemEntity> items = stocktakingItemRepository.findByStocktakingId(id);
+            return Result.success(converter.toStocktakingResponse(saved, items));
+        } catch (OptimisticLockingFailureException e) {
+            return Result.fail(GlobalErrorCode.CONFLICT);
+        }
+    }
+
+    @Override
+    @Transactional
     public Result<StocktakingResponse> complete(Long id) {
         Optional<StocktakingEntity> opt = stocktakingRepository.findById(id);
         if (opt.isEmpty()) {
             return Result.fail(InventoryErrorCode.STOCKTAKING_NOT_FOUND);
         }
         StocktakingEntity entity = opt.get();
-        if (!StocktakingStatus.IN_PROGRESS.getCode().equals(entity.getStatus())) {
+        // 仅 APPROVED 状态可完成（审批通过后方可计算差异并回写库存）
+        if (!StocktakingStatus.APPROVED.getCode().equals(entity.getStatus())) {
             return Result.fail(InventoryErrorCode.STOCKTAKING_INVALID_STATE);
         }
 

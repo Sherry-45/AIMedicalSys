@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/window/registration")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN','DOCTOR')")
 public class OfflineRegistrationController {
 
     private final OfflineRegistrationService registrationService;

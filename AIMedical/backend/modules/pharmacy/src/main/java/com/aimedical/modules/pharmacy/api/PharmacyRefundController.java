@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/pharmacy/refund")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN','DOCTOR')")
 public class PharmacyRefundController {
 
     private final PharmacyRefundService refundService;

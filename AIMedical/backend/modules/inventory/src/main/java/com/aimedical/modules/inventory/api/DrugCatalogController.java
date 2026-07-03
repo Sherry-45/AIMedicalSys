@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/api/inventory/drugs")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN','DOCTOR')")
 public class DrugCatalogController {
 
     private final DrugCatalogService drugCatalogService;

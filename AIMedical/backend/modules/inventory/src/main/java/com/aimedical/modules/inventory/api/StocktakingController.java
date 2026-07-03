@@ -31,7 +31,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/inventory/stocktaking")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN','DOCTOR')")
 public class StocktakingController {
 
     private final StocktakingService stocktakingService;
@@ -73,7 +73,7 @@ public class StocktakingController {
      * 提交审批（IN_PROGRESS -> PENDING_APPROVAL）。
      */
     @PostMapping("/{id}/submit")
-    @PreAuthorize("hasAnyRole('ADMIN','PHARMACIST')")
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR')")
     public Result<StocktakingResponse> submitForApproval(@PathVariable Long id) {
         Long approverId = currentUser.getUserId();
         String approverName = currentUser.getUsername();

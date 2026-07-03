@@ -20,7 +20,6 @@ MERGE INTO sys_function (id, parent_id, code, name, description, enabled, delete
 (4,  2,    'menu:patient',      '患者管理',   '患者列表',         true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 2, true, 'MENU',      'user-friend',  '/patient'),
 (5,  2,    'menu:registration', '挂号管理',   '挂号记录管理',     true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 3, true, 'MENU',      'registration', '/registration'),
 (6,  2,    'menu:prescriptions','我的处方',   '处方列表',         true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 4, true, 'MENU',      'edit-square',  '/prescriptions'),
-(7,  2,    'menu:appointment',  '预约管理',   '预约管理',         true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 5, true, 'MENU',      'calendar',     '/appointment'),
 -- AI 辅助目录
 (8,  NULL, 'menu:ai',           'AI 辅助',    '人工智能辅助诊疗', true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 3, true, 'DIRECTORY', 'robot',        '/ai'),
 (9,  8,    'menu:ai-diagnosis', 'AI 诊断',    'AI 辅助诊断',      true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 1, true, 'MENU',      'brain',        '/ai/diagnosis'),
@@ -66,13 +65,13 @@ MERGE INTO user_post (user_id, post_id) KEY(user_id, post_id) VALUES
 (1, 1), (2, 2), (3, 3);
 
 MERGE INTO post_function (post_id, function_id) KEY(post_id, function_id) VALUES
--- 管理员：全部功能（1-32）
-(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8),
+-- 管理员：全部功能（1-32，已移除 7=menu:appointment）
+(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 8),
 (1, 9), (1, 10), (1, 11), (1, 12), (1, 13), (1, 14), (1, 15), (1, 16),
 (1, 17), (1, 18), (1, 19), (1, 20), (1, 21), (1, 22), (1, 23), (1, 24),
 (1, 25), (1, 26), (1, 27), (1, 28), (1, 29), (1, 30), (1, 31), (1, 32),
--- 医生：诊疗 + AI + 药房 + 药库 + 窗口 + 健康档案（1-28，不含系统管理 29-32）
-(2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7), (2, 8),
+-- 医生：诊疗 + AI + 药房 + 药库 + 窗口 + 健康档案（1-28，不含 7=appointment 与 29-32 系统管理）
+(2, 1), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 8),
 (2, 9), (2, 10), (2, 11), (2, 12), (2, 13), (2, 14), (2, 15), (2, 16),
 (2, 17), (2, 18), (2, 19), (2, 20), (2, 21), (2, 22), (2, 23), (2, 24),
 (2, 25), (2, 26), (2, 27), (2, 28),

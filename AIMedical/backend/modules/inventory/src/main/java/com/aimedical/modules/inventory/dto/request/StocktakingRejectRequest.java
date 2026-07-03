@@ -1,5 +1,6 @@
 package com.aimedical.modules.inventory.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -12,6 +13,7 @@ import lombok.Data;
 @Data
 public class StocktakingRejectRequest {
 
+    @NotBlank
     @Size(max = 500)
     private String rejectReason;
 }

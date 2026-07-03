@@ -62,41 +62,12 @@ class AiResultTest {
     }
 
     @Test
-    void shouldSetAndGetSuccess() {
-        AiResult<String> result = new AiResult<>();
-        result.setSuccess(true);
-        assertTrue(result.isSuccess());
-        result.setSuccess(false);
+    void shouldCreateDegradedWithErrorCodeViaFactory() {
+        AiResult<Void> result = AiResult.degradedWithErrorCode("ERR", "reason");
         assertFalse(result.isSuccess());
-    }
-
-    @Test
-    void shouldSetAndGetData() {
-        AiResult<String> result = new AiResult<>();
-        result.setData("hello");
-        assertEquals("hello", result.getData());
-        result.setData(null);
         assertNull(result.getData());
-    }
-
-    @Test
-    void shouldSetAndGetErrorCode() {
-        AiResult<String> result = new AiResult<>();
-        result.setErrorCode("ERR_001");
-        assertEquals("ERR_001", result.getErrorCode());
-    }
-
-    @Test
-    void shouldSetAndGetDegraded() {
-        AiResult<String> result = new AiResult<>();
-        result.setDegraded(true);
+        assertEquals("ERR", result.getErrorCode());
         assertTrue(result.isDegraded());
-    }
-
-    @Test
-    void shouldSetAndGetFallbackReason() {
-        AiResult<String> result = new AiResult<>();
-        result.setFallbackReason("reason");
         assertEquals("reason", result.getFallbackReason());
     }
 

@@ -60,6 +60,8 @@ jwt:
 
 # AI 超时配置
 ai:
+  platform:
+    enabled: true
   timeout:
     triage: 8
     prescription-audit: 6

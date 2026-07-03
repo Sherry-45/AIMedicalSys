@@ -190,9 +190,7 @@ class PrescriptionAuditServiceImplTest {
 
     @Test
     void auditShouldHandleAiResultDataNull() {
-        AiResult<PrescriptionCheckResponse> aiResult = new AiResult<>();
-        aiResult.setSuccess(true);
-        aiResult.setData(null);
+        AiResult<PrescriptionCheckResponse> aiResult = new AiResult<>(true, null, null, false, null);
         when(aiService.prescriptionCheck(any())).thenReturn(CompletableFuture.completedFuture(aiResult));
         when(auditConverter.toAiPrescriptionCheckRequest(any())).thenReturn(new PrescriptionCheckRequest());
         when(currentUser.getUserId()).thenReturn(1L);

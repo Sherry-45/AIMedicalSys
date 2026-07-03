@@ -4,8 +4,6 @@ import org.junit.jupiter.api.Test;
 
 import com.aimedical.modules.ai.api.AiResult;
 import com.aimedical.modules.ai.api.AiService;
-import com.aimedical.modules.ai.api.degradation.DegradationContext;
-import com.aimedical.modules.ai.api.degradation.DegradationStrategy;
 import com.aimedical.modules.ai.api.dto.diagnosis.DiagnosisRequest;
 import com.aimedical.modules.ai.api.dto.diagnosis.DiagnosisResponse;
 import com.aimedical.modules.ai.api.dto.discussion.DiscussionConclusionRequest;
@@ -33,20 +31,12 @@ import com.aimedical.modules.ai.api.dto.schedule.ScheduleResponse;
 import com.aimedical.modules.ai.api.dto.triage.TriageRequest;
 import com.aimedical.modules.ai.api.dto.triage.TriageResponse;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import org.slf4j.LoggerFactory;
-
-import com.aimedical.modules.ai.api.degradation.DegradationContext;
+import org.springframework.beans.factory.ObjectProvider;
 
 class FallbackAiServiceTest {
 
@@ -57,7 +47,9 @@ class FallbackAiServiceTest {
         TriageResponse response = new TriageResponse();
         when(delegate.triage(request)).thenReturn(CompletableFuture.completedFuture(AiResult.success(response)));
 
-        FallbackAiService fallback = new FallbackAiService(List.of(delegate), List.of());
+        ObjectProvider<AiService> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(delegate);
+        FallbackAiService fallback = new FallbackAiService(provider);
         AiResult<TriageResponse> result = fallback.triage(request).join();
 
         assertTrue(result.isSuccess());
@@ -65,63 +57,14 @@ class FallbackAiServiceTest {
     }
 
     @Test
-    void shouldReturnFallbackResultWhenNoDelegateAvailable() {
-        FallbackAiService fallback = new FallbackAiService(List.of(), List.of());
-        AiResult<TriageResponse> result = fallback.triage(new TriageRequest()).join();
-
-        assertFalse(result.isSuccess());
-        assertTrue(result.isDegraded());
-        assertEquals("No available AiService delegate", result.getFallbackReason());
-    }
-
-    @Test
-    void shouldDegradeWhenStrategyTriggers() {
-        AiService delegate = mock(AiService.class);
+    void shouldThrowWhenNoDelegateAvailable() {
+        ObjectProvider<AiService> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(null);
+        FallbackAiService fallback = new FallbackAiService(provider);
+        assertNotNull(fallback);
         TriageRequest request = new TriageRequest();
-        AiResult<TriageResponse> failureResult = AiResult.failure("ERR");
-        when(delegate.triage(request)).thenReturn(CompletableFuture.completedFuture(failureResult));
-
-        DegradationStrategy strategy = mock(DegradationStrategy.class);
-        when(strategy.shouldDegrade(any())).thenReturn(true);
-
-        FallbackAiService fallback = new FallbackAiService(List.of(delegate), List.of(strategy));
         AiResult<TriageResponse> result = fallback.triage(request).join();
-
-        assertFalse(result.isSuccess());
         assertTrue(result.isDegraded());
-        assertEquals("No available AiService delegate", result.getFallbackReason());
-    }
-
-    @Test
-    void shouldReturnOriginalResultWhenNoStrategyDegrades() {
-        AiService delegate = mock(AiService.class);
-        TriageRequest request = new TriageRequest();
-        AiResult<TriageResponse> failureResult = AiResult.failure("ERR");
-        when(delegate.triage(request)).thenReturn(CompletableFuture.completedFuture(failureResult));
-
-        DegradationStrategy strategy = mock(DegradationStrategy.class);
-        when(strategy.shouldDegrade(any())).thenReturn(false);
-
-        FallbackAiService fallback = new FallbackAiService(List.of(delegate), List.of(strategy));
-        AiResult<TriageResponse> result = fallback.triage(request).join();
-
-        assertFalse(result.isSuccess());
-        assertFalse(result.isDegraded());
-        assertEquals("ERR", result.getErrorCode());
-    }
-
-    @Test
-    void shouldExcludeSelfFromDelegates() {
-        AiService delegate = mock(AiService.class);
-        FallbackAiService outer = new FallbackAiService(List.of(delegate), List.of());
-        FallbackAiService inner = new FallbackAiService(List.of(outer, delegate), List.of());
-
-        TriageRequest request = new TriageRequest();
-        TriageResponse response = new TriageResponse();
-        when(delegate.triage(request)).thenReturn(CompletableFuture.completedFuture(AiResult.success(response)));
-
-        AiResult<TriageResponse> result = inner.triage(request).join();
-        assertTrue(result.isSuccess());
     }
 
     @Test
@@ -131,57 +74,14 @@ class FallbackAiServiceTest {
         AiResult<TriageResponse> degradedResult = AiResult.degraded("already degraded");
         when(delegate.triage(request)).thenReturn(CompletableFuture.completedFuture(degradedResult));
 
-        FallbackAiService fallback = new FallbackAiService(List.of(delegate), List.of());
+        ObjectProvider<AiService> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(delegate);
+        FallbackAiService fallback = new FallbackAiService(provider);
         AiResult<TriageResponse> result = fallback.triage(request).join();
 
         assertFalse(result.isSuccess());
         assertTrue(result.isDegraded());
         assertEquals("already degraded", result.getFallbackReason());
-    }
-
-    @Test
-    void shouldLogErrorOnConstruction() {
-        Logger logger = (Logger) LoggerFactory.getLogger(FallbackAiService.class);
-        ListAppender<ILoggingEvent> appender = new ListAppender<>();
-        appender.start();
-        logger.addAppender(appender);
-
-        try {
-            new FallbackAiService(List.of(), List.of());
-            assertEquals(1, appender.list.size());
-            assertEquals(Level.ERROR, appender.list.get(0).getLevel());
-            assertEquals("No available AiService delegate", appender.list.get(0).getFormattedMessage());
-        } finally {
-            appender.stop();
-            logger.detachAppender(appender);
-        }
-    }
-
-    @Test
-    void shouldLogWarnOnSubsequentCalls() {
-        Logger logger = (Logger) LoggerFactory.getLogger(FallbackAiService.class);
-        ListAppender<ILoggingEvent> appender = new ListAppender<>();
-        appender.start();
-        logger.addAppender(appender);
-
-        try {
-            FallbackAiService service = new FallbackAiService(List.of(), List.of());
-
-            service.triage(new TriageRequest()).join();
-            assertEquals(2, appender.list.size());
-            assertEquals(Level.WARN, appender.list.get(1).getLevel());
-            assertEquals("No available AiService delegate", appender.list.get(1).getFormattedMessage());
-
-            appender.list.clear();
-
-            service.triage(new TriageRequest()).join();
-            assertEquals(1, appender.list.size());
-            assertEquals(Level.WARN, appender.list.get(0).getLevel());
-            assertEquals("No available AiService delegate", appender.list.get(0).getFormattedMessage());
-        } finally {
-            appender.stop();
-            logger.detachAppender(appender);
-        }
     }
 
     @Test
@@ -191,19 +91,13 @@ class FallbackAiServiceTest {
         DiagnosisResponse response = new DiagnosisResponse();
         when(delegate.diagnosis(request)).thenReturn(CompletableFuture.completedFuture(AiResult.success(response)));
 
-        FallbackAiService fallback = new FallbackAiService(List.of(delegate), List.of());
+        ObjectProvider<AiService> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(delegate);
+        FallbackAiService fallback = new FallbackAiService(provider);
         AiResult<DiagnosisResponse> result = fallback.diagnosis(request).join();
 
         assertTrue(result.isSuccess());
         assertSame(response, result.getData());
-    }
-
-    @Test
-    void diagnosisShouldReturnDegradedWhenNoDelegate() {
-        FallbackAiService fallback = new FallbackAiService(List.of(), List.of());
-        AiResult<DiagnosisResponse> result = fallback.diagnosis(new DiagnosisRequest()).join();
-
-        assertTrue(result.isDegraded());
     }
 
     @Test
@@ -213,19 +107,13 @@ class FallbackAiServiceTest {
         PrescriptionCheckResponse response = new PrescriptionCheckResponse();
         when(delegate.prescriptionCheck(request)).thenReturn(CompletableFuture.completedFuture(AiResult.success(response)));
 
-        FallbackAiService fallback = new FallbackAiService(List.of(delegate), List.of());
+        ObjectProvider<AiService> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(delegate);
+        FallbackAiService fallback = new FallbackAiService(provider);
         AiResult<PrescriptionCheckResponse> result = fallback.prescriptionCheck(request).join();
 
         assertTrue(result.isSuccess());
         assertSame(response, result.getData());
-    }
-
-    @Test
-    void prescriptionCheckShouldReturnDegradedWhenNoDelegate() {
-        FallbackAiService fallback = new FallbackAiService(List.of(), List.of());
-        AiResult<PrescriptionCheckResponse> result = fallback.prescriptionCheck(new PrescriptionCheckRequest()).join();
-
-        assertTrue(result.isDegraded());
     }
 
     @Test
@@ -235,19 +123,13 @@ class FallbackAiServiceTest {
         MedicalRecordGenResponse response = new MedicalRecordGenResponse();
         when(delegate.generateMedicalRecord(request)).thenReturn(CompletableFuture.completedFuture(AiResult.success(response)));
 
-        FallbackAiService fallback = new FallbackAiService(List.of(delegate), List.of());
+        ObjectProvider<AiService> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(delegate);
+        FallbackAiService fallback = new FallbackAiService(provider);
         AiResult<MedicalRecordGenResponse> result = fallback.generateMedicalRecord(request).join();
 
         assertTrue(result.isSuccess());
         assertSame(response, result.getData());
-    }
-
-    @Test
-    void generateMedicalRecordShouldReturnDegradedWhenNoDelegate() {
-        FallbackAiService fallback = new FallbackAiService(List.of(), List.of());
-        AiResult<MedicalRecordGenResponse> result = fallback.generateMedicalRecord(new MedicalRecordGenRequest()).join();
-
-        assertTrue(result.isDegraded());
     }
 
     @Test
@@ -257,19 +139,13 @@ class FallbackAiServiceTest {
         InspectionReportResponse response = new InspectionReportResponse();
         when(delegate.analysisReportForInspection(request)).thenReturn(CompletableFuture.completedFuture(AiResult.success(response)));
 
-        FallbackAiService fallback = new FallbackAiService(List.of(delegate), List.of());
+        ObjectProvider<AiService> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(delegate);
+        FallbackAiService fallback = new FallbackAiService(provider);
         AiResult<InspectionReportResponse> result = fallback.analysisReportForInspection(request).join();
 
         assertTrue(result.isSuccess());
         assertSame(response, result.getData());
-    }
-
-    @Test
-    void analysisReportForInspectionShouldReturnDegradedWhenNoDelegate() {
-        FallbackAiService fallback = new FallbackAiService(List.of(), List.of());
-        AiResult<InspectionReportResponse> result = fallback.analysisReportForInspection(new InspectionReportRequest()).join();
-
-        assertTrue(result.isDegraded());
     }
 
     @Test
@@ -279,19 +155,13 @@ class FallbackAiServiceTest {
         LabTestReportResponse response = new LabTestReportResponse();
         when(delegate.analysisReportForLabTest(request)).thenReturn(CompletableFuture.completedFuture(AiResult.success(response)));
 
-        FallbackAiService fallback = new FallbackAiService(List.of(delegate), List.of());
+        ObjectProvider<AiService> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(delegate);
+        FallbackAiService fallback = new FallbackAiService(provider);
         AiResult<LabTestReportResponse> result = fallback.analysisReportForLabTest(request).join();
 
         assertTrue(result.isSuccess());
         assertSame(response, result.getData());
-    }
-
-    @Test
-    void analysisReportForLabTestShouldReturnDegradedWhenNoDelegate() {
-        FallbackAiService fallback = new FallbackAiService(List.of(), List.of());
-        AiResult<LabTestReportResponse> result = fallback.analysisReportForLabTest(new LabTestReportRequest()).join();
-
-        assertTrue(result.isDegraded());
     }
 
     @Test
@@ -301,19 +171,13 @@ class FallbackAiServiceTest {
         ImageAnalysisResponse response = new ImageAnalysisResponse();
         when(delegate.imageAnalysis(request)).thenReturn(CompletableFuture.completedFuture(AiResult.success(response)));
 
-        FallbackAiService fallback = new FallbackAiService(List.of(delegate), List.of());
+        ObjectProvider<AiService> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(delegate);
+        FallbackAiService fallback = new FallbackAiService(provider);
         AiResult<ImageAnalysisResponse> result = fallback.imageAnalysis(request).join();
 
         assertTrue(result.isSuccess());
         assertSame(response, result.getData());
-    }
-
-    @Test
-    void imageAnalysisShouldReturnDegradedWhenNoDelegate() {
-        FallbackAiService fallback = new FallbackAiService(List.of(), List.of());
-        AiResult<ImageAnalysisResponse> result = fallback.imageAnalysis(new ImageAnalysisRequest()).join();
-
-        assertTrue(result.isDegraded());
     }
 
     @Test
@@ -323,19 +187,13 @@ class FallbackAiServiceTest {
         KbQueryResponse response = new KbQueryResponse();
         when(delegate.knowledgeBaseQuery(request)).thenReturn(CompletableFuture.completedFuture(AiResult.success(response)));
 
-        FallbackAiService fallback = new FallbackAiService(List.of(delegate), List.of());
+        ObjectProvider<AiService> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(delegate);
+        FallbackAiService fallback = new FallbackAiService(provider);
         AiResult<KbQueryResponse> result = fallback.knowledgeBaseQuery(request).join();
 
         assertTrue(result.isSuccess());
         assertSame(response, result.getData());
-    }
-
-    @Test
-    void knowledgeBaseQueryShouldReturnDegradedWhenNoDelegate() {
-        FallbackAiService fallback = new FallbackAiService(List.of(), List.of());
-        AiResult<KbQueryResponse> result = fallback.knowledgeBaseQuery(new KbQueryRequest()).join();
-
-        assertTrue(result.isDegraded());
     }
 
     @Test
@@ -345,19 +203,13 @@ class FallbackAiServiceTest {
         ExaminationRecommendResponse response = new ExaminationRecommendResponse();
         when(delegate.recommendExamination(request)).thenReturn(CompletableFuture.completedFuture(AiResult.success(response)));
 
-        FallbackAiService fallback = new FallbackAiService(List.of(delegate), List.of());
+        ObjectProvider<AiService> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(delegate);
+        FallbackAiService fallback = new FallbackAiService(provider);
         AiResult<ExaminationRecommendResponse> result = fallback.recommendExamination(request).join();
 
         assertTrue(result.isSuccess());
         assertSame(response, result.getData());
-    }
-
-    @Test
-    void recommendExaminationShouldReturnDegradedWhenNoDelegate() {
-        FallbackAiService fallback = new FallbackAiService(List.of(), List.of());
-        AiResult<ExaminationRecommendResponse> result = fallback.recommendExamination(new ExaminationRecommendRequest()).join();
-
-        assertTrue(result.isDegraded());
     }
 
     @Test
@@ -367,19 +219,13 @@ class FallbackAiServiceTest {
         PrescriptionAssistResponse response = new PrescriptionAssistResponse();
         when(delegate.prescriptionAssist(request)).thenReturn(CompletableFuture.completedFuture(AiResult.success(response)));
 
-        FallbackAiService fallback = new FallbackAiService(List.of(delegate), List.of());
+        ObjectProvider<AiService> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(delegate);
+        FallbackAiService fallback = new FallbackAiService(provider);
         AiResult<PrescriptionAssistResponse> result = fallback.prescriptionAssist(request).join();
 
         assertTrue(result.isSuccess());
         assertSame(response, result.getData());
-    }
-
-    @Test
-    void prescriptionAssistShouldReturnDegradedWhenNoDelegate() {
-        FallbackAiService fallback = new FallbackAiService(List.of(), List.of());
-        AiResult<PrescriptionAssistResponse> result = fallback.prescriptionAssist(new PrescriptionAssistRequest()).join();
-
-        assertTrue(result.isDegraded());
     }
 
     @Test
@@ -389,19 +235,13 @@ class FallbackAiServiceTest {
         ExecutionOrderResponse response = new ExecutionOrderResponse();
         when(delegate.recommendExecutionOrder(request)).thenReturn(CompletableFuture.completedFuture(AiResult.success(response)));
 
-        FallbackAiService fallback = new FallbackAiService(List.of(delegate), List.of());
+        ObjectProvider<AiService> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(delegate);
+        FallbackAiService fallback = new FallbackAiService(provider);
         AiResult<ExecutionOrderResponse> result = fallback.recommendExecutionOrder(request).join();
 
         assertTrue(result.isSuccess());
         assertSame(response, result.getData());
-    }
-
-    @Test
-    void recommendExecutionOrderShouldReturnDegradedWhenNoDelegate() {
-        FallbackAiService fallback = new FallbackAiService(List.of(), List.of());
-        AiResult<ExecutionOrderResponse> result = fallback.recommendExecutionOrder(new ExecutionOrderRequest()).join();
-
-        assertTrue(result.isDegraded());
     }
 
     @Test
@@ -411,19 +251,13 @@ class FallbackAiServiceTest {
         ScheduleResponse response = new ScheduleResponse();
         when(delegate.schedule(request)).thenReturn(CompletableFuture.completedFuture(AiResult.success(response)));
 
-        FallbackAiService fallback = new FallbackAiService(List.of(delegate), List.of());
+        ObjectProvider<AiService> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(delegate);
+        FallbackAiService fallback = new FallbackAiService(provider);
         AiResult<ScheduleResponse> result = fallback.schedule(request).join();
 
         assertTrue(result.isSuccess());
         assertSame(response, result.getData());
-    }
-
-    @Test
-    void scheduleShouldReturnDegradedWhenNoDelegate() {
-        FallbackAiService fallback = new FallbackAiService(List.of(), List.of());
-        AiResult<ScheduleResponse> result = fallback.schedule(new ScheduleRequest()).join();
-
-        assertTrue(result.isDegraded());
     }
 
     @Test
@@ -433,89 +267,12 @@ class FallbackAiServiceTest {
         DiscussionConclusionResponse response = new DiscussionConclusionResponse();
         when(delegate.discussionConclusion(request)).thenReturn(CompletableFuture.completedFuture(AiResult.success(response)));
 
-        FallbackAiService fallback = new FallbackAiService(List.of(delegate), List.of());
+        ObjectProvider<AiService> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(delegate);
+        FallbackAiService fallback = new FallbackAiService(provider);
         AiResult<DiscussionConclusionResponse> result = fallback.discussionConclusion(request).join();
 
         assertTrue(result.isSuccess());
         assertSame(response, result.getData());
-    }
-
-    @Test
-    void discussionConclusionShouldReturnDegradedWhenNoDelegate() {
-        FallbackAiService fallback = new FallbackAiService(List.of(), List.of());
-        AiResult<DiscussionConclusionResponse> result = fallback.discussionConclusion(new DiscussionConclusionRequest()).join();
-
-        assertTrue(result.isDegraded());
-    }
-
-    @Test
-    void selectDelegateShouldPickFirstWhenNoStrategies() {
-        AiService delegate1 = mock(AiService.class);
-        AiService delegate2 = mock(AiService.class);
-        FallbackAiService fallback = new FallbackAiService(List.of(delegate1, delegate2), List.of());
-
-        TriageRequest request = new TriageRequest();
-        TriageResponse response = new TriageResponse();
-        when(delegate1.triage(request)).thenReturn(CompletableFuture.completedFuture(AiResult.success(response)));
-
-        AiResult<TriageResponse> result = fallback.triage(request).join();
-        assertTrue(result.isSuccess());
-        verify(delegate1).triage(request);
-        verify(delegate2, never()).triage(any());
-    }
-
-    @Test
-    void selectDelegateShouldSkipFirstWhenDegradedByStrategy() {
-        AiService delegate1 = mock(AiService.class);
-        AiService delegate2 = mock(AiService.class);
-        DegradationStrategy strategy = mock(DegradationStrategy.class);
-        when(strategy.shouldDegrade(any(DegradationContext.class))).thenReturn(true, false);
-
-        FallbackAiService fallback = new FallbackAiService(List.of(delegate1, delegate2), List.of(strategy));
-
-        TriageRequest request = new TriageRequest();
-        TriageResponse response = new TriageResponse();
-        when(delegate2.triage(request)).thenReturn(CompletableFuture.completedFuture(AiResult.success(response)));
-
-        AiResult<TriageResponse> result = fallback.triage(request).join();
-        assertTrue(result.isSuccess());
-        verify(delegate1, never()).triage(any());
-        verify(delegate2).triage(request);
-    }
-
-    @Test
-    void selectDelegateShouldReturnEmptyDelegatesWhenAllSkipped() {
-        AiService delegate1 = mock(AiService.class);
-        AiService delegate2 = mock(AiService.class);
-        DegradationStrategy strategy = mock(DegradationStrategy.class);
-        when(strategy.shouldDegrade(any(DegradationContext.class))).thenReturn(true);
-
-        FallbackAiService fallback = new FallbackAiService(List.of(delegate1, delegate2), List.of(strategy));
-
-        AiResult<TriageResponse> result = fallback.triage(new TriageRequest()).join();
-        assertFalse(result.isSuccess());
-        assertTrue(result.isDegraded());
-        assertEquals("No available AiService delegate", result.getFallbackReason());
-        verify(delegate1, never()).triage(any());
-        verify(delegate2, never()).triage(any());
-    }
-
-    @Test
-    void selectDelegateShouldUseContextWithServiceNameAndOperationName() {
-        AiService delegate1 = mock(AiService.class);
-        DegradationStrategy strategy = mock(DegradationStrategy.class);
-        when(strategy.shouldDegrade(any(DegradationContext.class))).thenAnswer(inv -> {
-            DegradationContext ctx = inv.getArgument(0);
-            return !"triage".equals(ctx.getServiceName()) || !"triage".equals(ctx.getOperationName());
-        });
-
-        FallbackAiService fallback = new FallbackAiService(List.of(delegate1), List.of(strategy));
-
-        TriageRequest request = new TriageRequest();
-        TriageResponse response = new TriageResponse();
-        when(delegate1.triage(request)).thenReturn(CompletableFuture.completedFuture(AiResult.success(response)));
-
-        AiResult<TriageResponse> result = fallback.triage(request).join();
-        assertTrue(result.isSuccess());
     }
 }

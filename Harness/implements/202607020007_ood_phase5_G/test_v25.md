@@ -1,0 +1,10 @@
+TEST_WRITTEN:C:\Develop\Software\AIMedicalSys\AIMedical\backend\modules\ai\ai-impl\src\test\java\com\aimedical\modules\ai\impl\orchestrator\AbstractCapabilityExecutorTest.java
+TEST_WRITTEN:C:\Develop\Software\AIMedicalSys\AIMedical\backend\modules\ai\ai-impl\src\test\java\com\aimedical\modules\ai\impl\orchestrator\impl\TriageCapabilityExecutorTest.java
+TEST_WRITTEN:C:\Develop\Software\AIMedicalSys\AIMedical\backend\modules\ai\ai-impl\src\test\java\com\aimedical\modules\ai\impl\orchestrator\impl\DiscussionConclusionCapabilityExecutorTest.java
+TEST_WRITTEN:C:\Develop\Software\AIMedicalSys\AIMedical\backend\modules\ai\ai-impl\src\test\java\com\aimedical\modules\ai\impl\orchestrator\impl\DiagnosisCapabilityExecutorTest.java
+TEST_WRITTEN:C:\Develop\Software\AIMedicalSys\AIMedical\backend\modules\ai\ai-impl\src\test\java\com\aimedical\modules\ai\impl\orchestrator\impl\AnalysisReportForInspectionCapabilityExecutorTest.java
+TEST_WRITTEN:C:\Develop\Software\AIMedicalSys\AIMedical\backend\modules\ai\ai-impl\src\test\java\com\aimedical\modules\ai\impl\orchestrator\impl\AnalysisReportForLabTestCapabilityExecutorTest.java
+TEST_WRITTEN:C:\Develop\Software\AIMedicalSys\AIMedical\backend\modules\ai\ai-impl\src\test\java\com\aimedical\modules\ai\impl\orchestrator\impl\ImageAnalysisCapabilityExecutorTest.java
+TEST_WRITTEN:C:\Develop\Software\AIMedicalSys\AIMedical\backend\modules\ai\ai-impl\src\test\java\com\aimedical\modules\ai\impl\orchestrator\impl\RecommendExaminationCapabilityExecutorTest.java
+TEST_WRITTEN:C:\Develop\Software\AIMedicalSys\AIMedical\backend\modules\ai\ai-impl\src\test\java\com\aimedical\modules\ai\impl\orchestrator\impl\RecommendExecutionOrderCapabilityExecutorTest.java
+TEST_WRITTEN:C:\Develop\Software\AIMedicalSys\AIMedical\backend\modules\ai\ai-impl\src\test\java\com\aimedical\modules\ai\impl\router\DefaultModelRouterTest.java

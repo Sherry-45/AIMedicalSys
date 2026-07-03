@@ -848,5 +848,431 @@ CREATE TABLE `drug_contraindication_mapping` (
   UNIQUE KEY `uk_drug_contra_drug_code` (`drug_code`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='药品禁忌映射';
 
+-- =============================================
+-- Phase 4: 药房域 / 药库域 / 线下窗口 / 健康档案增强
+-- =============================================
+
+-- ---------------------------------------------
+-- 35. drug_catalog  药品目录
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `drug_catalog`;
+CREATE TABLE `drug_catalog` (
+  `id`              BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `drug_code`       VARCHAR(64)   NOT NULL                COMMENT '药品编码',
+  `drug_name`       VARCHAR(255)  NOT NULL                COMMENT '药品名称',
+  `generic_name`    VARCHAR(255)  DEFAULT NULL            COMMENT '通用名',
+  `specification`   VARCHAR(255)  DEFAULT NULL            COMMENT '规格',
+  `manufacturer`    VARCHAR(255)  DEFAULT NULL            COMMENT '生产厂家',
+  `drug_form`       VARCHAR(50)   DEFAULT NULL            COMMENT '剂型',
+  `drug_category`   VARCHAR(50)   NOT NULL                COMMENT '药品类别 WESTERN_MEDICINE/CHINESE_MEDICINE/BILOGICAL/DEVICE',
+  `unit`            VARCHAR(20)   DEFAULT NULL            COMMENT '单位',
+  `retail_price`    DECIMAL(10,2) DEFAULT NULL            COMMENT '零售价',
+  `purchase_price`  DECIMAL(10,2) DEFAULT NULL            COMMENT '采购价',
+  `otc_flag`        TINYINT(1)    DEFAULT 0               COMMENT '是否OTC',
+  `enabled`         TINYINT(1)    NOT NULL DEFAULT 1      COMMENT '是否启用',
+  `remark`          VARCHAR(500)  DEFAULT NULL            COMMENT '备注',
+  `version`         BIGINT        DEFAULT 0               COMMENT '乐观锁版本号',
+  `created_at`      DATETIME      DEFAULT NULL            COMMENT '创建时间',
+  `updated_at`      DATETIME      DEFAULT NULL            COMMENT '更新时间',
+  `deleted`         TINYINT(1)    NOT NULL DEFAULT 0      COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_drug_code` (`drug_code`),
+  KEY `idx_drug_name` (`drug_name`),
+  KEY `idx_drug_category` (`drug_category`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='药品目录表';
+
+-- ---------------------------------------------
+-- 36. inventory_stock  药库库存
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `inventory_stock`;
+CREATE TABLE `inventory_stock` (
+  `id`              BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `drug_code`       VARCHAR(64)   NOT NULL                COMMENT '药品编码',
+  `batch_no`        VARCHAR(64)   DEFAULT NULL            COMMENT '批次号',
+  `quantity`        DECIMAL(12,2) NOT NULL DEFAULT 0      COMMENT '库存数量',
+  `unit`            VARCHAR(20)   DEFAULT NULL            COMMENT '单位',
+  `purchase_price`  DECIMAL(10,2) DEFAULT NULL            COMMENT '采购价',
+  `retail_price`    DECIMAL(10,2) DEFAULT NULL            COMMENT '零售价',
+  `expiry_date`     DATE          DEFAULT NULL            COMMENT '有效期',
+  `production_date` DATE          DEFAULT NULL            COMMENT '生产日期',
+  `warehouse_location` VARCHAR(64) DEFAULT NULL           COMMENT '库位',
+  `remark`          VARCHAR(500)  DEFAULT NULL            COMMENT '备注',
+  `version`         BIGINT        DEFAULT 0               COMMENT '乐观锁版本号',
+  `created_at`      DATETIME      DEFAULT NULL            COMMENT '创建时间',
+  `updated_at`      DATETIME      DEFAULT NULL            COMMENT '更新时间',
+  `deleted`         TINYINT(1)    NOT NULL DEFAULT 0      COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_inventory_drug_code` (`drug_code`),
+  KEY `idx_inventory_batch` (`batch_no`),
+  KEY `idx_inventory_expiry` (`expiry_date`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='药库库存表';
+
+-- ---------------------------------------------
+-- 37. pharmacy_stock  药房库存
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `pharmacy_stock`;
+CREATE TABLE `pharmacy_stock` (
+  `id`              BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `drug_code`       VARCHAR(64)   NOT NULL                COMMENT '药品编码',
+  `drug_name`       VARCHAR(255)  DEFAULT NULL            COMMENT '药品名称',
+  `batch_no`        VARCHAR(64)   DEFAULT NULL            COMMENT '批次号',
+  `quantity`        DECIMAL(12,2) NOT NULL DEFAULT 0      COMMENT '库存数量',
+  `unit`            VARCHAR(20)   DEFAULT NULL            COMMENT '单位',
+  `retail_price`    DECIMAL(10,2) DEFAULT NULL            COMMENT '零售价',
+  `expiry_date`     DATE          DEFAULT NULL            COMMENT '有效期',
+  `shelf_location`  VARCHAR(64)   DEFAULT NULL            COMMENT '货架位置',
+  `safety_stock`    DECIMAL(12,2) DEFAULT 0               COMMENT '安全库存',
+  `remark`          VARCHAR(500)  DEFAULT NULL            COMMENT '备注',
+  `version`         BIGINT        DEFAULT 0               COMMENT '乐观锁版本号',
+  `created_at`      DATETIME      DEFAULT NULL            COMMENT '创建时间',
+  `updated_at`      DATETIME      DEFAULT NULL            COMMENT '更新时间',
+  `deleted`         TINYINT(1)    NOT NULL DEFAULT 0      COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_pharmacy_drug_code` (`drug_code`),
+  KEY `idx_pharmacy_batch` (`batch_no`),
+  KEY `idx_pharmacy_expiry` (`expiry_date`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='药房库存表';
+
+-- ---------------------------------------------
+-- 38. dispensing_record  发药记录
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `dispensing_record`;
+CREATE TABLE `dispensing_record` (
+  `id`                BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `dispensing_no`     VARCHAR(32)   NOT NULL                COMMENT '发药单号',
+  `prescription_id`   BIGINT        DEFAULT NULL            COMMENT '处方ID',
+  `medical_order_id`  BIGINT        DEFAULT NULL            COMMENT '医嘱ID',
+  `patient_id`        BIGINT        DEFAULT NULL            COMMENT '患者档案ID',
+  `patient_name`      VARCHAR(64)   DEFAULT NULL            COMMENT '患者姓名',
+  `pharmacist_id`     BIGINT        DEFAULT NULL            COMMENT '发药药师ID(sys_user)',
+  `pharmacist_name`   VARCHAR(64)   DEFAULT NULL            COMMENT '药师姓名',
+  `status`            VARCHAR(20)   NOT NULL DEFAULT 'PENDING' COMMENT '状态 PENDING/DISPENSED/REFUNDED/CANCELLED',
+  `total_quantity`    DECIMAL(12,2) DEFAULT NULL            COMMENT '总数量',
+  `total_amount`      DECIMAL(10,2) DEFAULT NULL            COMMENT '总金额',
+  `dispensed_at`      DATETIME      DEFAULT NULL            COMMENT '发药时间',
+  `remark`            VARCHAR(500)  DEFAULT NULL            COMMENT '备注',
+  `version`           BIGINT        DEFAULT 0               COMMENT '乐观锁版本号',
+  `created_at`        DATETIME      DEFAULT NULL            COMMENT '创建时间',
+  `updated_at`        DATETIME      DEFAULT NULL            COMMENT '更新时间',
+  `deleted`           TINYINT(1)    NOT NULL DEFAULT 0      COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_dispensing_no` (`dispensing_no`),
+  KEY `idx_dispensing_patient` (`patient_id`),
+  KEY `idx_dispensing_prescription` (`prescription_id`),
+  KEY `idx_dispensing_status` (`status`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='发药记录表';
+
+-- ---------------------------------------------
+-- 39. dispensing_item  发药明细
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `dispensing_item`;
+CREATE TABLE `dispensing_item` (
+  `id`                BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `dispensing_id`     BIGINT        NOT NULL                COMMENT '发药记录ID',
+  `drug_code`         VARCHAR(64)   NOT NULL                COMMENT '药品编码',
+  `drug_name`         VARCHAR(255)  NOT NULL                COMMENT '药品名称',
+  `specification`     VARCHAR(255)  DEFAULT NULL            COMMENT '规格',
+  `batch_no`          VARCHAR(64)   DEFAULT NULL            COMMENT '批次号',
+  `quantity`          DECIMAL(12,2) NOT NULL                COMMENT '发药数量',
+  `unit`              VARCHAR(20)   DEFAULT NULL            COMMENT '单位',
+  `unit_price`        DECIMAL(10,2) DEFAULT NULL            COMMENT '单价',
+  `amount`            DECIMAL(10,2) DEFAULT NULL            COMMENT '金额',
+  `dosage`            VARCHAR(100)  DEFAULT NULL            COMMENT '用量',
+  `usage_method`      VARCHAR(100)  DEFAULT NULL            COMMENT '用法',
+  `frequency`         VARCHAR(50)   DEFAULT NULL            COMMENT '频次',
+  `days`              INT           DEFAULT NULL            COMMENT '天数',
+  `remark`            VARCHAR(500)  DEFAULT NULL            COMMENT '备注',
+  `version`           BIGINT        DEFAULT 0               COMMENT '乐观锁版本号',
+  `created_at`        DATETIME      DEFAULT NULL            COMMENT '创建时间',
+  `updated_at`        DATETIME      DEFAULT NULL            COMMENT '更新时间',
+  `deleted`           TINYINT(1)    NOT NULL DEFAULT 0      COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_disp_item_dispensing` (`dispensing_id`),
+  KEY `idx_disp_item_drug_code` (`drug_code`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='发药明细表';
+
+-- ---------------------------------------------
+-- 40. pharmacy_refund_record  退药记录
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `pharmacy_refund_record`;
+CREATE TABLE `pharmacy_refund_record` (
+  `id`                BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `refund_no`         VARCHAR(32)   NOT NULL                COMMENT '退药单号',
+  `dispensing_id`     BIGINT        NOT NULL                COMMENT '原发药记录ID',
+  `patient_id`        BIGINT        DEFAULT NULL            COMMENT '患者档案ID',
+  `patient_name`      VARCHAR(64)   DEFAULT NULL            COMMENT '患者姓名',
+  `pharmacist_id`     BIGINT        DEFAULT NULL            COMMENT '退药药师ID',
+  `pharmacist_name`   VARCHAR(64)   DEFAULT NULL            COMMENT '药师姓名',
+  `status`            VARCHAR(20)   NOT NULL DEFAULT 'PENDING' COMMENT '状态 PENDING/REFUNDED/REJECTED',
+  `refund_reason`     VARCHAR(500)  DEFAULT NULL            COMMENT '退药原因',
+  `total_quantity`    DECIMAL(12,2) DEFAULT NULL            COMMENT '退药总数量',
+  `total_amount`      DECIMAL(10,2) DEFAULT NULL            COMMENT '退药总金额',
+  `refunded_at`       DATETIME      DEFAULT NULL            COMMENT '退药时间',
+  `remark`            VARCHAR(500)  DEFAULT NULL            COMMENT '备注',
+  `version`           BIGINT        DEFAULT 0               COMMENT '乐观锁版本号',
+  `created_at`        DATETIME      DEFAULT NULL            COMMENT '创建时间',
+  `updated_at`        DATETIME      DEFAULT NULL            COMMENT '更新时间',
+  `deleted`           TINYINT(1)    NOT NULL DEFAULT 0      COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_refund_no` (`refund_no`),
+  KEY `idx_refund_dispensing` (`dispensing_id`),
+  KEY `idx_refund_patient` (`patient_id`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='退药记录表';
+
+-- ---------------------------------------------
+-- 41. pharmacy_refund_item  退药明细
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `pharmacy_refund_item`;
+CREATE TABLE `pharmacy_refund_item` (
+  `id`                BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `refund_id`         BIGINT        NOT NULL                COMMENT '退药记录ID',
+  `dispensing_item_id` BIGINT       DEFAULT NULL            COMMENT '原发药明细ID',
+  `drug_code`         VARCHAR(64)   NOT NULL                COMMENT '药品编码',
+  `drug_name`         VARCHAR(255)  NOT NULL                COMMENT '药品名称',
+  `batch_no`          VARCHAR(64)   DEFAULT NULL            COMMENT '批次号',
+  `quantity`          DECIMAL(12,2) NOT NULL                COMMENT '退药数量',
+  `unit`              VARCHAR(20)   DEFAULT NULL            COMMENT '单位',
+  `unit_price`        DECIMAL(10,2) DEFAULT NULL            COMMENT '单价',
+  `amount`            DECIMAL(10,2) DEFAULT NULL            COMMENT '金额',
+  `remark`            VARCHAR(500)  DEFAULT NULL            COMMENT '备注',
+  `version`           BIGINT        DEFAULT 0               COMMENT '乐观锁版本号',
+  `created_at`        DATETIME      DEFAULT NULL            COMMENT '创建时间',
+  `updated_at`        DATETIME      DEFAULT NULL            COMMENT '更新时间',
+  `deleted`           TINYINT(1)    NOT NULL DEFAULT 0      COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_refund_item_refund` (`refund_id`),
+  KEY `idx_refund_item_drug` (`drug_code`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='退药明细表';
+
+-- ---------------------------------------------
+-- 42. stocktaking  盘库单
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `stocktaking`;
+CREATE TABLE `stocktaking` (
+  `id`              BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `stocktaking_no`  VARCHAR(32)   NOT NULL                COMMENT '盘库单号',
+  `stocktaking_type` VARCHAR(20)  NOT NULL DEFAULT 'FULL' COMMENT '盘库类型 FULL/PARTIAL/SPOT',
+  `status`          VARCHAR(20)   NOT NULL DEFAULT 'DRAFT' COMMENT '状态 DRAFT/IN_PROGRESS/COMPLETED/CANCELLED',
+  `operator_id`     BIGINT        DEFAULT NULL            COMMENT '操作人ID',
+  `operator_name`   VARCHAR(64)   DEFAULT NULL            COMMENT '操作人姓名',
+  `start_time`      DATETIME      DEFAULT NULL            COMMENT '盘库开始时间',
+  `end_time`        DATETIME      DEFAULT NULL            COMMENT '盘库结束时间',
+  `total_items`     INT           DEFAULT 0               COMMENT '盘库品种数',
+  `surplus_items`   INT           DEFAULT 0               COMMENT '盘盈品种数',
+  `loss_items`      INT           DEFAULT 0               COMMENT '盘亏品种数',
+  `remark`          VARCHAR(500)  DEFAULT NULL            COMMENT '备注',
+  `version`         BIGINT        DEFAULT 0               COMMENT '乐观锁版本号',
+  `created_at`      DATETIME      DEFAULT NULL            COMMENT '创建时间',
+  `updated_at`      DATETIME      DEFAULT NULL            COMMENT '更新时间',
+  `deleted`         TINYINT(1)    NOT NULL DEFAULT 0      COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_stocktaking_no` (`stocktaking_no`),
+  KEY `idx_stocktaking_status` (`status`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='盘库单表';
+
+-- ---------------------------------------------
+-- 43. stocktaking_item  盘库明细
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `stocktaking_item`;
+CREATE TABLE `stocktaking_item` (
+  `id`               BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `stocktaking_id`   BIGINT        NOT NULL                COMMENT '盘库单ID',
+  `drug_code`        VARCHAR(64)   NOT NULL                COMMENT '药品编码',
+  `drug_name`        VARCHAR(255)  DEFAULT NULL            COMMENT '药品名称',
+  `batch_no`         VARCHAR(64)   DEFAULT NULL            COMMENT '批次号',
+  `book_quantity`    DECIMAL(12,2) DEFAULT NULL            COMMENT '账面数量',
+  `actual_quantity`  DECIMAL(12,2) DEFAULT NULL            COMMENT '实际数量',
+  `difference`       DECIMAL(12,2) DEFAULT NULL            COMMENT '差异',
+  `difference_type`  VARCHAR(20)   DEFAULT NULL            COMMENT '差异类型 SURPLUS/LOSS/NONE',
+  `unit`             VARCHAR(20)   DEFAULT NULL            COMMENT '单位',
+  `remark`           VARCHAR(500)  DEFAULT NULL            COMMENT '备注',
+  `version`          BIGINT        DEFAULT 0               COMMENT '乐观锁版本号',
+  `created_at`       DATETIME      DEFAULT NULL            COMMENT '创建时间',
+  `updated_at`       DATETIME      DEFAULT NULL            COMMENT '更新时间',
+  `deleted`          TINYINT(1)    NOT NULL DEFAULT 0      COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_st_item_stocktaking` (`stocktaking_id`),
+  KEY `idx_st_item_drug` (`drug_code`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='盘库明细表';
+
+-- ---------------------------------------------
+-- 44. transfer_order  调拨单
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `transfer_order`;
+CREATE TABLE `transfer_order` (
+  `id`              BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `transfer_no`     VARCHAR(32)   NOT NULL                COMMENT '调拨单号',
+  `transfer_type`   VARCHAR(20)   NOT NULL                COMMENT '调拨类型 INVENTORY_TO_PHARMACY/PHARMACY_TO_INVENTORY/PHARMACY_TO_PHARMACY',
+  `status`          VARCHAR(20)   NOT NULL DEFAULT 'DRAFT' COMMENT '状态 DRAFT/PENDING_APPROVAL/APPROVED/IN_TRANSIT/RECEIVED/REJECTED/CANCELLED',
+  `source_dept`     VARCHAR(64)   DEFAULT NULL            COMMENT '调出部门',
+  `target_dept`     VARCHAR(64)   DEFAULT NULL            COMMENT '调入部门',
+  `applicant_id`    BIGINT        DEFAULT NULL            COMMENT '申请人ID',
+  `applicant_name`  VARCHAR(64)   DEFAULT NULL            COMMENT '申请人姓名',
+  `approver_id`     BIGINT        DEFAULT NULL            COMMENT '审批人ID',
+  `approver_name`   VARCHAR(64)   DEFAULT NULL            COMMENT '审批人姓名',
+  `approved_at`     DATETIME      DEFAULT NULL            COMMENT '审批时间',
+  `shipped_at`      DATETIME      DEFAULT NULL            COMMENT '出库时间',
+  `received_at`     DATETIME      DEFAULT NULL            COMMENT '入库时间',
+  `total_items`     INT           DEFAULT 0               COMMENT '调拨品种数',
+  `total_amount`    DECIMAL(10,2) DEFAULT NULL            COMMENT '总金额',
+  `reject_reason`   VARCHAR(500)  DEFAULT NULL            COMMENT '驳回原因',
+  `remark`          VARCHAR(500)  DEFAULT NULL            COMMENT '备注',
+  `version`         BIGINT        DEFAULT 0               COMMENT '乐观锁版本号',
+  `created_at`      DATETIME      DEFAULT NULL            COMMENT '创建时间',
+  `updated_at`      DATETIME      DEFAULT NULL            COMMENT '更新时间',
+  `deleted`         TINYINT(1)    NOT NULL DEFAULT 0      COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_transfer_no` (`transfer_no`),
+  KEY `idx_transfer_status` (`status`),
+  KEY `idx_transfer_type` (`transfer_type`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='调拨单表';
+
+-- ---------------------------------------------
+-- 45. transfer_item  调拨明细
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `transfer_item`;
+CREATE TABLE `transfer_item` (
+  `id`              BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `transfer_id`     BIGINT        NOT NULL                COMMENT '调拨单ID',
+  `drug_code`       VARCHAR(64)   NOT NULL                COMMENT '药品编码',
+  `drug_name`       VARCHAR(255)  NOT NULL                COMMENT '药品名称',
+  `specification`   VARCHAR(255)  DEFAULT NULL            COMMENT '规格',
+  `batch_no`        VARCHAR(64)   DEFAULT NULL            COMMENT '批次号',
+  `quantity`        DECIMAL(12,2) NOT NULL                COMMENT '调拨数量',
+  `unit`            VARCHAR(20)   DEFAULT NULL            COMMENT '单位',
+  `unit_price`      DECIMAL(10,2) DEFAULT NULL            COMMENT '单价',
+  `amount`          DECIMAL(10,2) DEFAULT NULL            COMMENT '金额',
+  `remark`          VARCHAR(500)  DEFAULT NULL            COMMENT '备注',
+  `version`         BIGINT        DEFAULT 0               COMMENT '乐观锁版本号',
+  `created_at`      DATETIME      DEFAULT NULL            COMMENT '创建时间',
+  `updated_at`      DATETIME      DEFAULT NULL            COMMENT '更新时间',
+  `deleted`         TINYINT(1)    NOT NULL DEFAULT 0      COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_transfer_item_order` (`transfer_id`),
+  KEY `idx_transfer_item_drug` (`drug_code`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='调拨明细表';
+
+-- ---------------------------------------------
+-- 46. offline_registration  线下挂号
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `offline_registration`;
+CREATE TABLE `offline_registration` (
+  `id`                BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `registration_no`   VARCHAR(32)   NOT NULL                COMMENT '线下挂号单号',
+  `patient_id`        BIGINT        DEFAULT NULL            COMMENT '患者档案ID',
+  `patient_name`      VARCHAR(64)   NOT NULL                COMMENT '患者姓名',
+  `patient_phone`     VARCHAR(20)   DEFAULT NULL            COMMENT '患者手机号',
+  `id_card`           VARCHAR(32)   DEFAULT NULL            COMMENT '身份证号',
+  `doctor_id`         BIGINT        DEFAULT NULL            COMMENT '医生档案ID',
+  `doctor_name`       VARCHAR(64)   DEFAULT NULL            COMMENT '医生姓名',
+  `department`        VARCHAR(64)   DEFAULT NULL            COMMENT '科室',
+  `registration_type` VARCHAR(20)   NOT NULL DEFAULT 'OUTPATIENT' COMMENT '挂号类型 OUTPATIENT/EXAMINATION/EMERGENCY',
+  `status`            VARCHAR(20)   NOT NULL DEFAULT 'ACTIVE' COMMENT '状态 ACTIVE/CANCELLED',
+  `registration_fee`  DECIMAL(10,2) DEFAULT NULL            COMMENT '挂号费',
+  `operator_id`       BIGINT        DEFAULT NULL            COMMENT '操作员ID',
+  `operator_name`     VARCHAR(64)   DEFAULT NULL            COMMENT '操作员姓名',
+  `cancel_reason`     VARCHAR(500)  DEFAULT NULL            COMMENT '取消原因',
+  `cancel_time`       DATETIME      DEFAULT NULL            COMMENT '取消时间',
+  `remark`            VARCHAR(500)  DEFAULT NULL            COMMENT '备注',
+  `version`           BIGINT        DEFAULT 0               COMMENT '乐观锁版本号',
+  `created_at`        DATETIME      DEFAULT NULL            COMMENT '创建时间',
+  `updated_at`        DATETIME      DEFAULT NULL            COMMENT '更新时间',
+  `deleted`           TINYINT(1)    NOT NULL DEFAULT 0      COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_offline_reg_no` (`registration_no`),
+  KEY `idx_offline_reg_patient` (`patient_id`),
+  KEY `idx_offline_reg_status` (`status`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='线下挂号表';
+
+-- ---------------------------------------------
+-- 47. payment_record  缴费记录
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `payment_record`;
+CREATE TABLE `payment_record` (
+  `id`                BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `payment_no`        VARCHAR(32)   NOT NULL                COMMENT '缴费单号',
+  `patient_id`        BIGINT        DEFAULT NULL            COMMENT '患者档案ID',
+  `patient_name`      VARCHAR(64)   DEFAULT NULL            COMMENT '患者姓名',
+  `source_id`         BIGINT        DEFAULT NULL            COMMENT '来源单据ID(挂号/医嘱等)',
+  `source_type`       VARCHAR(20)   DEFAULT NULL            COMMENT '来源类型 REGISTRATION/MEDICAL_ORDER/DISPENSING',
+  `source_no`         VARCHAR(32)   DEFAULT NULL            COMMENT '来源单号',
+  `total_amount`      DECIMAL(10,2) NOT NULL                COMMENT '总金额',
+  `paid_amount`       DECIMAL(10,2) DEFAULT NULL            COMMENT '实付金额',
+  `refund_amount`     DECIMAL(10,2) DEFAULT 0               COMMENT '退款金额',
+  `status`            VARCHAR(20)   NOT NULL DEFAULT 'PENDING' COMMENT '状态 PENDING/PAID/REFUNDED/RECONCILED',
+  `payment_method`    VARCHAR(20)   DEFAULT NULL            COMMENT '支付方式 CASH/WECHAT/ALIPAY/BANK_CARD/INSURANCE',
+  `payer_name`        VARCHAR(64)   DEFAULT NULL            COMMENT '支付人姓名',
+  `operator_id`       BIGINT        DEFAULT NULL            COMMENT '操作员ID',
+  `operator_name`     VARCHAR(64)   DEFAULT NULL            COMMENT '操作员姓名',
+  `paid_at`           DATETIME      DEFAULT NULL            COMMENT '支付时间',
+  `refunded_at`       DATETIME      DEFAULT NULL            COMMENT '退款时间',
+  `reconciled_at`     DATETIME      DEFAULT NULL            COMMENT '对账时间',
+  `refund_reason`     VARCHAR(500)  DEFAULT NULL            COMMENT '退款原因',
+  `reconcile_batch_no` VARCHAR(32)  DEFAULT NULL            COMMENT '对账批次号',
+  `remark`            VARCHAR(500)  DEFAULT NULL            COMMENT '备注',
+  `version`           BIGINT        DEFAULT 0               COMMENT '乐观锁版本号',
+  `created_at`        DATETIME      DEFAULT NULL            COMMENT '创建时间',
+  `updated_at`        DATETIME      DEFAULT NULL            COMMENT '更新时间',
+  `deleted`           TINYINT(1)    NOT NULL DEFAULT 0      COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_payment_no` (`payment_no`),
+  KEY `idx_payment_patient` (`patient_id`),
+  KEY `idx_payment_status` (`status`),
+  KEY `idx_payment_source` (`source_type`, `source_id`),
+  KEY `idx_payment_reconcile` (`reconcile_batch_no`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='缴费记录表';
+
+-- ---------------------------------------------
+-- 48. payment_item  缴费明细
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `payment_item`;
+CREATE TABLE `payment_item` (
+  `id`              BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `payment_id`      BIGINT        NOT NULL                COMMENT '缴费记录ID',
+  `item_type`       VARCHAR(20)   NOT NULL                COMMENT '项目类型 REGISTRATION_FEE/DRUG_FEE/EXAMINATION_FEE/LAB_TEST_FEE/OTHER',
+  `item_name`       VARCHAR(255)  NOT NULL                COMMENT '项目名称',
+  `quantity`        DECIMAL(10,2) DEFAULT 1               COMMENT '数量',
+  `unit_price`      DECIMAL(10,2) NOT NULL                COMMENT '单价',
+  `amount`          DECIMAL(10,2) NOT NULL                COMMENT '金额',
+  `remark`          VARCHAR(500)  DEFAULT NULL            COMMENT '备注',
+  `version`         BIGINT        DEFAULT 0               COMMENT '乐观锁版本号',
+  `created_at`      DATETIME      DEFAULT NULL            COMMENT '创建时间',
+  `updated_at`      DATETIME      DEFAULT NULL            COMMENT '更新时间',
+  `deleted`         TINYINT(1)    NOT NULL DEFAULT 0      COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_payment_item_payment` (`payment_id`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='缴费明细表';
+
+-- ---------------------------------------------
+-- 49. health_record  健康档案记录
+-- ---------------------------------------------
+DROP TABLE IF EXISTS `health_record`;
+CREATE TABLE `health_record` (
+  `id`              BIGINT        NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `patient_id`      BIGINT        NOT NULL                COMMENT '患者档案ID',
+  `record_type`     VARCHAR(30)   NOT NULL                COMMENT '记录类型 MEDICAL_RECORD/PRESCRIPTION/EXAM_REPORT/LAB_TEST/DISPENSING/PAYMENT/ALLERGY/CHRONIC_DISEASE',
+  `record_category` VARCHAR(30)   DEFAULT NULL            COMMENT '记录类别 OUTPATIENT/INPATIENT/PHYSICAL_EXAM/FOLLOW_UP',
+  `title`           VARCHAR(255)  NOT NULL                COMMENT '标题',
+  `content`         TEXT          DEFAULT NULL            COMMENT '内容描述',
+  `organization`    VARCHAR(128)  DEFAULT NULL            COMMENT '医疗机构名称',
+  `department`      VARCHAR(64)   DEFAULT NULL            COMMENT '科室',
+  `doctor_name`     VARCHAR(64)   DEFAULT NULL            COMMENT '医生姓名',
+  `source_id`       BIGINT        DEFAULT NULL            COMMENT '来源记录ID',
+  `source_table`    VARCHAR(64)   DEFAULT NULL            COMMENT '来源表名',
+  `report_data`     TEXT          DEFAULT NULL            COMMENT '报告数据(JSON)',
+  `record_date`     DATE          DEFAULT NULL            COMMENT '记录日期',
+  `remark`          VARCHAR(500)  DEFAULT NULL            COMMENT '备注',
+  `version`         BIGINT        DEFAULT 0               COMMENT '乐观锁版本号',
+  `created_at`      DATETIME      DEFAULT NULL            COMMENT '创建时间',
+  `updated_at`      DATETIME      DEFAULT NULL            COMMENT '更新时间',
+  `deleted`         TINYINT(1)    NOT NULL DEFAULT 0      COMMENT '逻辑删除',
+  PRIMARY KEY (`id`),
+  KEY `idx_health_patient` (`patient_id`),
+  KEY `idx_health_type` (`record_type`),
+  KEY `idx_health_category` (`record_category`),
+  KEY `idx_health_org` (`organization`),
+  KEY `idx_health_date` (`record_date`)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT ='健康档案记录表';
+
 SET FOREIGN_KEY_CHECKS = 1;
 SET REFERENTIAL_INTEGRITY TRUE;

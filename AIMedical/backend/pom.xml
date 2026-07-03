@@ -26,6 +26,9 @@
         <module>modules/medical-order</module>
         <module>modules/consultation</module>
         <module>modules/prescription</module>
+        <module>modules/pharmacy</module>
+        <module>modules/inventory</module>
+        <module>modules/window</module>
         <module>application</module>
         <module>integration</module>
     </modules>
@@ -112,6 +115,21 @@
             <dependency>
                 <groupId>com.aimedical</groupId>
                 <artifactId>registration</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.aimedical</groupId>
+                <artifactId>pharmacy</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.aimedical</groupId>
+                <artifactId>inventory</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.aimedical</groupId>
+                <artifactId>window</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!-- External libraries -->

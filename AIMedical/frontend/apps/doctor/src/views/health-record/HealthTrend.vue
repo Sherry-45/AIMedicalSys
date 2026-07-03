@@ -37,7 +37,7 @@
           </el-descriptions-item>
           <el-descriptions-item label="就诊机构" :span="4">
             <el-tag
-              v-for="org in trend.organizations"
+              v-for="org in (trend.organizations ?? [])"
               :key="org"
               class="org-tag"
               type="info"
@@ -125,10 +125,10 @@ const loading = ref(false)
 const trend = ref<HealthTrendResponse | null>(null)
 
 const typeEntries = computed<[string, number][]>(() =>
-  trend.value ? Object.entries(trend.value.records_by_type) : [],
+  trend.value ? Object.entries(trend.value.records_by_type ?? {}) : [],
 )
 const categoryEntries = computed<[string, number][]>(() =>
-  trend.value ? Object.entries(trend.value.records_by_category) : [],
+  trend.value ? Object.entries(trend.value.records_by_category ?? {}) : [],
 )
 const typeMax = computed(() => Math.max(1, ...typeEntries.value.map((e) => e[1])))
 const categoryMax = computed(() => Math.max(1, ...categoryEntries.value.map((e) => e[1])))

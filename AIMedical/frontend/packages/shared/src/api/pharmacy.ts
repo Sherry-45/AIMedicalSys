@@ -1,4 +1,4 @@
-import type { BusinessError } from '../types'
+import type { BusinessError, PageResponse } from '../types'
 import { apiGet, apiPost } from './client'
 
 import type {
@@ -48,8 +48,8 @@ export const pharmacyApi = {
   /** 查询发药记录列表。GET /api/pharmacy/dispensing */
   queryDispensing: (
     params: DispensingQueryRequest,
-  ): Promise<DispensingResponse[] | BusinessError> => {
-    return apiGet<DispensingResponse[]>('/pharmacy/dispensing', { params })
+  ): Promise<PageResponse<DispensingResponse> | BusinessError> => {
+    return apiGet<PageResponse<DispensingResponse>>('/pharmacy/dispensing', { params })
   },
 
   // ---- 退药（PharmacyRefund） ----
@@ -84,8 +84,8 @@ export const pharmacyApi = {
   /** 查询退药记录列表。GET /api/pharmacy/refund */
   queryRefund: (
     params: PharmacyRefundQueryRequest,
-  ): Promise<PharmacyRefundResponse[] | BusinessError> => {
-    return apiGet<PharmacyRefundResponse[]>('/pharmacy/refund', { params })
+  ): Promise<PageResponse<PharmacyRefundResponse> | BusinessError> => {
+    return apiGet<PageResponse<PharmacyRefundResponse>>('/pharmacy/refund', { params })
   },
 
   // ---- 药房库存（PharmacyStock） ----
@@ -93,8 +93,8 @@ export const pharmacyApi = {
   /** 查询药房库存列表。GET /api/pharmacy/stock */
   queryStock: (
     params: PharmacyStockQueryRequest,
-  ): Promise<PharmacyStockResponse[] | BusinessError> => {
-    return apiGet<PharmacyStockResponse[]>('/pharmacy/stock', { params })
+  ): Promise<PageResponse<PharmacyStockResponse> | BusinessError> => {
+    return apiGet<PageResponse<PharmacyStockResponse>>('/pharmacy/stock', { params })
   },
 
   /** 按药品编码查询库存详情。GET /api/pharmacy/stock/{drugCode} */

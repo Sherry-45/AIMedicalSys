@@ -309,6 +309,7 @@ const statusLabel = (status: PaymentStatus): string => {
     PAID: '已支付',
     REFUNDED: '已退费',
     RECONCILED: '已对账',
+    CANCELLED: '已取消',
   }
   return map[status] || status
 }
@@ -321,6 +322,7 @@ const statusTagType = (
     PAID: 'success',
     REFUNDED: 'danger',
     RECONCILED: 'primary',
+    CANCELLED: 'info',
   }
   return map[status] || 'info'
 }

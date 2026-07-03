@@ -13,7 +13,7 @@
 // ==================== 线下挂号 ====================
 
 /** 线下挂号状态枚举值（与后端状态机一致）。 */
-export type OfflineRegistrationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED'
+export type OfflineRegistrationStatus = 'ACTIVE' | 'CANCELLED'
 
 /** 创建线下挂号请求。对应后端 OfflineRegistrationCreateRequest（POST body, snake_case）。 */
 export interface OfflineRegistrationCreateRequest {
@@ -55,19 +55,21 @@ export interface OfflineRegistrationResponse {
   doctor_name: string | null
   department: string | null
   registration_type: string | null
-  registration_fee: number | null
   status: OfflineRegistrationStatus
+  registration_fee: number | null
+  operator_id: number | null
+  operator_name: string | null
   cancel_reason: string | null
+  cancel_time: string | null
   remark: string | null
   created_at: string | null
   updated_at: string | null
-  cancelled_at: string | null
 }
 
 // ==================== 收费退费 ====================
 
 /** 缴费记录状态枚举值。 */
-export type PaymentStatus = 'PENDING' | 'PAID' | 'REFUNDED' | 'RECONCILED'
+export type PaymentStatus = 'PENDING' | 'PAID' | 'REFUNDED' | 'RECONCILED' | 'CANCELLED'
 
 /** 缴费明细项（创建请求）。对应后端 PaymentItemRequest（POST body, snake_case）。 */
 export interface PaymentItemRequest {
@@ -132,20 +134,21 @@ export interface PaymentRecordResponse {
   source_no: string | null
   total_amount: number
   paid_amount: number | null
+  status: PaymentStatus
   payment_method: string | null
   payer_name: string | null
-  status: PaymentStatus
-  refund_reason: string | null
+  operator_id: number | null
+  operator_name: string | null
+  paid_at: string | null
+  refunded_at: string | null
+  reconciled_at: string | null
   refund_amount: number | null
-  refund_time: string | null
-  reconciled: boolean | null
+  refund_reason: string | null
   reconcile_batch_no: string | null
-  reconcile_time: string | null
   items: PaymentItemResponse[] | null
   remark: string | null
   created_at: string | null
   updated_at: string | null
-  paid_at: string | null
 }
 
 // ==================== 对账 ====================
@@ -158,7 +161,7 @@ export interface ReconcileRequest {
 
 /** 对账响应。对应后端 ReconcileResponse（snake_case）。 */
 export interface ReconcileResponse {
-  batch_no: string | null
+  reconcile_batch_no: string | null
   reconciled_count: number | null
   total_amount: number | null
   records: PaymentRecordResponse[] | null

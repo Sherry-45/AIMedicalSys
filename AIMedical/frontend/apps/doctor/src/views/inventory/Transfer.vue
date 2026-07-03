@@ -16,7 +16,7 @@
               <el-option v-for="(label, val) in statusLabels" :key="val" :label="label" :value="val" />
             </el-select>
             <el-select
-              v-model="filterForm.transfer_type"
+              v-model="filterForm.transferType"
               placeholder="类型筛选"
               clearable
               style="width: 130px"
@@ -46,7 +46,7 @@
         <el-table-column label="明细数" width="80" align="center">
           <template #default="{ row }">{{ row.items?.length ?? 0 }}</template>
         </el-table-column>
-        <el-table-column label="创建人" prop="creator_name" width="100" />
+        <el-table-column label="创建人" prop="applicant_name" width="100" />
         <el-table-column label="创建时间" width="170">
           <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
         </el-table-column>
@@ -54,13 +54,13 @@
         <el-table-column label="操作" width="200" align="center" fixed="right">
           <template #default="{ row }">
             <el-button size="small" type="primary" link @click="viewDetail(row)">详情</el-button>
-            <el-button v-if="row.status === 'PENDING'" size="small" type="success" link @click="doSubmit(row)">提交</el-button>
+            <el-button v-if="row.status === 'DRAFT'" size="small" type="success" link @click="doSubmit(row)">提交</el-button>
             <el-button v-if="row.status === 'PENDING_APPROVAL'" size="small" type="success" link @click="doApprove(row)">通过</el-button>
             <el-button v-if="row.status === 'PENDING_APPROVAL'" size="small" type="danger" link @click="doReject(row)">驳回</el-button>
             <el-button v-if="row.status === 'APPROVED'" size="small" type="primary" link @click="doShip(row)">发货</el-button>
-            <el-button v-if="row.status === 'SHIPPED'" size="small" type="success" link @click="doReceive(row)">接收</el-button>
+            <el-button v-if="row.status === 'IN_TRANSIT'" size="small" type="success" link @click="doReceive(row)">接收</el-button>
             <el-button
-              v-if="['PENDING', 'PENDING_APPROVAL', 'APPROVED'].includes(row.status)"
+              v-if="['DRAFT', 'PENDING_APPROVAL', 'APPROVED'].includes(row.status)"
               size="small" type="info" link @click="doCancel(row)">取消</el-button>
           </template>
         </el-table-column>
@@ -164,7 +164,7 @@
           </el-descriptions-item>
           <el-descriptions-item label="调出部门">{{ detail.source_dept ?? '—' }}</el-descriptions-item>
           <el-descriptions-item label="调入部门">{{ detail.target_dept ?? '—' }}</el-descriptions-item>
-          <el-descriptions-item label="创建人">{{ detail.creator_name ?? '—' }}</el-descriptions-item>
+          <el-descriptions-item label="创建人">{{ detail.applicant_name ?? '—' }}</el-descriptions-item>
           <el-descriptions-item label="审批人">{{ detail.approver_name ?? '—' }}</el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ formatDateTime(detail.created_at) }}</el-descriptions-item>
           <el-descriptions-item label="备注">{{ detail.remark ?? '—' }}</el-descriptions-item>
@@ -211,16 +211,16 @@ const total = ref(0)
 
 const filterForm = reactive({
   status: '',
-  transfer_type: '',
+  transferType: '',
 })
 
 const statusLabels: Record<string, string> = {
-  PENDING: '待提交',
+  DRAFT: '草稿',
   PENDING_APPROVAL: '待审批',
   APPROVED: '已审批',
-  REJECTED: '已驳回',
-  SHIPPED: '已发货',
+  IN_TRANSIT: '在途',
   RECEIVED: '已接收',
+  REJECTED: '已驳回',
   CANCELLED: '已取消',
 }
 
@@ -228,12 +228,12 @@ const statusLabel = (status: string): string => statusLabels[status] ?? status
 
 const statusTagType = (status: string): 'primary' | 'success' | 'info' | 'warning' | 'danger' => {
   const map: Record<string, 'primary' | 'success' | 'info' | 'warning' | 'danger'> = {
-    PENDING: 'info',
+    DRAFT: 'info',
     PENDING_APPROVAL: 'warning',
     APPROVED: 'success',
-    REJECTED: 'danger',
-    SHIPPED: 'primary',
+    IN_TRANSIT: 'primary',
     RECEIVED: 'success',
+    REJECTED: 'danger',
     CANCELLED: 'info',
   }
   return map[status] ?? 'info'
@@ -266,7 +266,7 @@ async function loadList() {
   try {
     const result = await inventoryApi.queryTransfer({
       status: filterForm.status || undefined,
-      transfer_type: filterForm.transfer_type || undefined,
+      transferType: filterForm.transferType || undefined,
       page: currentPage.value - 1,
       size: pageSize.value,
     })

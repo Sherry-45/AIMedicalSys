@@ -11,7 +11,7 @@
               clearable
               size="default"
               style="width: 140px"
-              @keyup.enter="loadList"
+              @keyup.enter="search"
             />
             <el-select
               v-model="queryForm.status"
@@ -19,33 +19,34 @@
               clearable
               size="default"
               style="width: 140px"
-              @change="loadList"
+              @change="search"
             >
               <el-option label="全部" :value="''" />
               <el-option label="待发药" value="PENDING" />
               <el-option label="已发药" value="DISPENSED" />
+              <el-option label="已退药" value="REFUNDED" />
               <el-option label="已取消" value="CANCELLED" />
             </el-select>
-            <el-button :loading="loading" @click="loadList">查询</el-button>
+            <el-button :loading="loading" @click="search">查询</el-button>
             <el-button type="primary" @click="openCreateDialog">新建发药</el-button>
           </div>
         </div>
       </template>
 
-      <el-table :data="pagedList" border style="width: 100%">
-        <el-table-column label="发药单号" prop="dispensingNo" width="160">
-          <template #default="{ row }">{{ row.dispensingNo || row.id }}</template>
+      <el-table :data="list" border style="width: 100%">
+        <el-table-column label="发药单号" prop="dispensing_no" width="160">
+          <template #default="{ row }">{{ row.dispensing_no || row.id }}</template>
         </el-table-column>
         <el-table-column label="患者" width="140">
           <template #default="{ row }">
-            {{ row.patientName || ('#' + row.patientId) }}
+            {{ row.patient_name || ('#' + row.patient_id) }}
           </template>
         </el-table-column>
         <el-table-column label="药品数" width="90" align="center">
           <template #default="{ row }">{{ row.items?.length ?? 0 }}</template>
         </el-table-column>
         <el-table-column label="总金额" width="110" align="right">
-          <template #default="{ row }">{{ formatAmount(row.totalAmount) }}</template>
+          <template #default="{ row }">{{ formatAmount(row.total_amount) }}</template>
         </el-table-column>
         <el-table-column label="状态" width="110" align="center">
           <template #default="{ row }">
@@ -53,10 +54,10 @@
           </template>
         </el-table-column>
         <el-table-column label="操作人" width="110">
-          <template #default="{ row }">{{ row.operatorName || '—' }}</template>
+          <template #default="{ row }">{{ row.pharmacist_name || '—' }}</template>
         </el-table-column>
         <el-table-column label="创建时间" width="170">
-          <template #default="{ row }">{{ formatDateTime(row.createdAt) }}</template>
+          <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
         </el-table-column>
         <el-table-column label="操作" width="220" align="center" fixed="right">
           <template #default="{ row }">
@@ -80,13 +81,16 @@
         </template>
       </el-table>
 
-      <div v-if="list.length > pageSize" class="pagination-wrapper">
+      <div class="pagination-wrapper">
         <el-pagination
           v-model:current-page="currentPage"
-          :page-size="pageSize"
-          :total="list.length"
-          layout="prev, pager, next, total"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next"
           background
+          @current-change="loadList"
+          @size-change="onSizeChange"
         />
       </div>
     </el-card>
@@ -96,21 +100,21 @@
       <el-form ref="createFormRef" :model="createForm" label-width="100px">
         <el-form-item label="患者ID" required>
           <el-input
-            v-model.number="createForm.patientId"
+            v-model.number="createForm.patient_id"
             placeholder="请输入患者ID"
             style="width: 220px"
           />
         </el-form-item>
         <el-form-item label="患者姓名">
           <el-input
-            v-model="createForm.patientName"
+            v-model="createForm.patient_name"
             placeholder="可选"
             style="width: 220px"
           />
         </el-form-item>
         <el-form-item label="处方ID">
           <el-input
-            v-model.number="createForm.prescriptionId"
+            v-model.number="createForm.prescription_id"
             placeholder="可选"
             style="width: 220px"
           />
@@ -120,12 +124,12 @@
           <el-table :data="createForm.items" border size="small" style="width: 100%">
             <el-table-column label="药品编码" width="130">
               <template #default="{ row }">
-                <el-input v-model="row.drugCode" size="small" placeholder="药品编码" />
+                <el-input v-model="row.drug_code" size="small" placeholder="药品编码" />
               </template>
             </el-table-column>
             <el-table-column label="药品名称" min-width="140">
               <template #default="{ row }">
-                <el-input v-model="row.drugName" size="small" placeholder="药品名称" />
+                <el-input v-model="row.drug_name" size="small" placeholder="药品名称" />
               </template>
             </el-table-column>
             <el-table-column label="规格" width="120">
@@ -151,7 +155,7 @@
             </el-table-column>
             <el-table-column label="用法" width="120">
               <template #default="{ row }">
-                <el-input v-model="row.usageMethod" size="small" placeholder="用法" />
+                <el-input v-model="row.usage_method" size="small" placeholder="用法" />
               </template>
             </el-table-column>
             <el-table-column label="频率" width="120">
@@ -192,15 +196,15 @@
     <!-- 发药详情对话框 -->
     <el-dialog v-model="detailVisible" title="发药单详情" width="640px">
       <el-descriptions v-if="detail" :column="2" border>
-        <el-descriptions-item label="发药单号">{{ detail.dispensingNo || detail.id }}</el-descriptions-item>
+        <el-descriptions-item label="发药单号">{{ detail.dispensing_no || detail.id }}</el-descriptions-item>
         <el-descriptions-item label="状态">
           <el-tag :type="statusTagType(detail.status)">{{ statusLabel(detail.status) }}</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="患者">{{ detail.patientName || ('#' + detail.patientId) }}</el-descriptions-item>
-        <el-descriptions-item label="总金额">{{ formatAmount(detail.totalAmount) }}</el-descriptions-item>
-        <el-descriptions-item label="操作人">{{ detail.operatorName || '—' }}</el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ formatDateTime(detail.createdAt) }}</el-descriptions-item>
-        <el-descriptions-item label="发药时间">{{ formatDateTime(detail.dispensedAt) }}</el-descriptions-item>
+        <el-descriptions-item label="患者">{{ detail.patient_name || ('#' + detail.patient_id) }}</el-descriptions-item>
+        <el-descriptions-item label="总金额">{{ formatAmount(detail.total_amount) }}</el-descriptions-item>
+        <el-descriptions-item label="操作人">{{ detail.pharmacist_name || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ formatDateTime(detail.created_at) }}</el-descriptions-item>
+        <el-descriptions-item label="发药时间">{{ formatDateTime(detail.dispensed_at) }}</el-descriptions-item>
         <el-descriptions-item label="备注">{{ detail.remark || '—' }}</el-descriptions-item>
       </el-descriptions>
       <el-table
@@ -210,13 +214,13 @@
         size="small"
         style="margin-top: 12px"
       >
-        <el-table-column label="药品编码" prop="drugCode" width="130" />
-        <el-table-column label="药品名称" prop="drugName" min-width="140" />
+        <el-table-column label="药品编码" prop="drug_code" width="130" />
+        <el-table-column label="药品名称" prop="drug_name" min-width="140" />
         <el-table-column label="规格" prop="specification" width="110" />
         <el-table-column label="数量" prop="quantity" width="80" align="center" />
         <el-table-column label="单位" prop="unit" width="80" />
         <el-table-column label="单价" width="90" align="right">
-          <template #default="{ row }">{{ formatAmount(row.unitPrice) }}</template>
+          <template #default="{ row }">{{ formatAmount(row.unit_price) }}</template>
         </el-table-column>
       </el-table>
     </el-dialog>
@@ -224,7 +228,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { pharmacyApi, isBusinessError } from '@aimedical/shared'
 import type {
@@ -243,19 +247,15 @@ const queryForm = reactive({
 })
 
 const currentPage = ref(1)
-const pageSize = 10
-
-const pagedList = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  return list.value.slice(start, start + pageSize)
-})
+const pageSize = ref(10)
+const total = ref(0)
 
 // ---- 新建发药 ----
 const createVisible = ref(false)
 const createForm = reactive<DispensingCreateRequest>({
-  patientId: 0,
-  patientName: '',
-  prescriptionId: undefined,
+  patient_id: 0,
+  patient_name: '',
+  prescription_id: undefined,
   items: [],
   remark: '',
 })
@@ -266,21 +266,21 @@ function openCreateDialog() {
 }
 
 function resetCreateForm() {
-  createForm.patientId = 0
-  createForm.patientName = ''
-  createForm.prescriptionId = undefined
+  createForm.patient_id = 0
+  createForm.patient_name = ''
+  createForm.prescription_id = undefined
   createForm.items = []
   createForm.remark = ''
 }
 
 function addItem() {
   createForm.items.push({
-    drugCode: '',
-    drugName: '',
+    drug_code: '',
+    drug_name: '',
     specification: '',
     quantity: 1,
     unit: '',
-    usageMethod: '',
+    usage_method: '',
     frequency: '',
   } as DispensingItemRequest)
 }
@@ -290,7 +290,7 @@ function removeItem(index: number) {
 }
 
 async function submitCreate() {
-  if (!createForm.patientId) {
+  if (!createForm.patient_id) {
     ElMessage.warning('请填写患者ID')
     return
   }
@@ -298,7 +298,7 @@ async function submitCreate() {
     ElMessage.warning('请至少添加一条药品明细')
     return
   }
-  const invalid = createForm.items.some((it) => !it.drugCode || !it.drugName || !it.quantity)
+  const invalid = createForm.items.some((it) => !it.drug_code || !it.drug_name || !it.quantity)
   if (invalid) {
     ElMessage.warning('请完善药品明细（编码/名称/数量必填）')
     return
@@ -380,19 +380,31 @@ async function handleView(id: number) {
 }
 
 // ---- 查询 ----
+function search() {
+  currentPage.value = 1
+  loadList()
+}
+
+function onSizeChange() {
+  currentPage.value = 1
+  loadList()
+}
+
 async function loadList() {
   loading.value = true
   try {
-    const params: Record<string, unknown> = {}
-    if (queryForm.patientId) params.patientId = queryForm.patientId
-    if (queryForm.status) params.status = queryForm.status
-    const result = await pharmacyApi.queryDispensing(params)
+    const result = await pharmacyApi.queryDispensing({
+      patientId: queryForm.patientId || undefined,
+      status: queryForm.status || undefined,
+      page: currentPage.value - 1,
+      size: pageSize.value,
+    })
     if (isBusinessError(result)) {
       ElMessage.error(result.message)
       return
     }
-    list.value = result
-    currentPage.value = 1
+    list.value = result.content ?? []
+    total.value = result.totalElements ?? 0
   } finally {
     loading.value = false
   }
@@ -411,6 +423,7 @@ const statusLabel = (status: string): string => {
   const map: Record<string, string> = {
     PENDING: '待发药',
     DISPENSED: '已发药',
+    REFUNDED: '已退药',
     CANCELLED: '已取消',
   }
   return map[status] || status
@@ -420,6 +433,7 @@ const statusTagType = (status: string): 'primary' | 'success' | 'info' | 'warnin
   const map: Record<string, 'primary' | 'success' | 'info' | 'warning' | 'danger'> = {
     PENDING: 'warning',
     DISPENSED: 'success',
+    REFUNDED: 'info',
     CANCELLED: 'info',
   }
   return map[status] || 'info'

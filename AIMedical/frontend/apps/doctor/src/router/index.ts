@@ -46,6 +46,19 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true },
       },
       {
+        path: '/registration',
+        name: 'RegistrationManagement',
+        component: () => import('../views/Registration.vue'),
+        meta: { requiresAuth: true },
+      },
+      // 字面量 /patient 必须在动态 /patient/:patientId 之前
+      {
+        path: '/patient',
+        name: 'PatientList',
+        component: () => import('../views/PatientList.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
         path: '/patient/:patientId',
         name: 'PatientInfo',
         component: () => import('../views/PatientInfo.vue'),

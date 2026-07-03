@@ -29,10 +29,8 @@
               style="width: 140px"
               @change="applyFilter"
             >
-              <el-option label="待确认" value="PENDING" />
-              <el-option label="已确认" value="CONFIRMED" />
+              <el-option label="有效" value="ACTIVE" />
               <el-option label="已取消" value="CANCELLED" />
-              <el-option label="已完成" value="COMPLETED" />
             </el-select>
             <el-button type="primary" @click="applyFilter">查询</el-button>
             <el-button :loading="loading" @click="loadList">刷新</el-button>
@@ -243,10 +241,8 @@ async function loadList() {
 
 const statusLabel = (status: OfflineRegistrationStatus): string => {
   const map: Record<OfflineRegistrationStatus, string> = {
-    PENDING: '待确认',
-    CONFIRMED: '已确认',
+    ACTIVE: '有效',
     CANCELLED: '已取消',
-    COMPLETED: '已完成',
   }
   return map[status] || status
 }
@@ -255,16 +251,14 @@ const statusTagType = (
   status: OfflineRegistrationStatus,
 ): 'primary' | 'success' | 'info' | 'warning' | 'danger' => {
   const map: Record<OfflineRegistrationStatus, 'primary' | 'success' | 'info' | 'warning' | 'danger'> = {
-    PENDING: 'warning',
-    CONFIRMED: 'primary',
+    ACTIVE: 'success',
     CANCELLED: 'info',
-    COMPLETED: 'success',
   }
   return map[status] || 'info'
 }
 
 const canCancel = (status: OfflineRegistrationStatus): boolean => {
-  return status === 'PENDING' || status === 'CONFIRMED'
+  return status === 'ACTIVE'
 }
 
 const formatDateTime = (iso: string | null): string =>

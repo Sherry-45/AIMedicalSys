@@ -11,7 +11,7 @@ import type { PageResponse } from './index'
 
 /** 盘点状态枚举值（与后端 StocktakingStatus.code 一致）。 */
 export type StocktakingStatus =
-  | 'PENDING'
+  | 'DRAFT'
   | 'IN_PROGRESS'
   | 'PENDING_APPROVAL'
   | 'APPROVED'
@@ -88,11 +88,11 @@ export interface StocktakingResponse {
 
 /** 调拨状态枚举值（与后端 TransferStatus.code 一致）。 */
 export type TransferStatus =
-  | 'PENDING'
+  | 'DRAFT'
   | 'PENDING_APPROVAL'
   | 'APPROVED'
   | 'REJECTED'
-  | 'SHIPPED'
+  | 'IN_TRANSIT'
   | 'RECEIVED'
   | 'CANCELLED'
 
@@ -125,7 +125,7 @@ export interface TransferApproveRequest {
 /** 调拨查询请求。对应后端 TransferQueryRequest。 */
 export interface TransferQueryRequest {
   status?: string
-  transfer_type?: string
+  transferType?: string
   page?: number
   size?: number
 }
@@ -147,26 +147,31 @@ export interface TransferOrderResponse {
   id: number
   transfer_no?: string
   transfer_type?: string
+  status: TransferStatus
   source_dept?: string
   target_dept?: string
-  status: TransferStatus
-  remark?: string
-  items?: TransferItem[]
-  creator_id?: number
-  creator_name?: string
+  applicant_id?: number
+  applicant_name?: string
   approver_id?: number
   approver_name?: string
+  approved_at?: string
+  shipped_at?: string
+  received_at?: string
+  total_items?: number
+  total_amount?: number
   reject_reason?: string
+  remark?: string
   created_at?: string
   updated_at?: string
+  items?: TransferItem[]
 }
 
 // ==================== 库存（Inventory Stock） ====================
 
 /** 库存查询请求。对应后端 InventoryStockQueryRequest。 */
 export interface InventoryStockQueryRequest {
-  drug_code?: string
-  batch_no?: string
+  drugCode?: string
+  batchNo?: string
   page?: number
   size?: number
 }

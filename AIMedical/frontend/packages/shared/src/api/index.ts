@@ -198,6 +198,7 @@ export { pharmacyApi } from './pharmacy'
 export { inventoryApi } from './inventory'
 export { windowApi } from './window'
 export { healthRecordApi } from './health-record'
+export { registrationApi } from './registration'
 
 /**
  * AI 智能导诊 API
@@ -246,7 +247,7 @@ export const appointmentApi = {
 /**
  * 线上挂号 API
  */
-export const registrationApi = {
+export const patientRegistrationApi = {
   getDepartments: (): Promise<TriageDepartment[] | BusinessError> => {
     return apiGet<TriageDepartment[]>('/patient/registration/departments')
   },

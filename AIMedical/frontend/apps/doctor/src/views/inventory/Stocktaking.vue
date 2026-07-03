@@ -45,13 +45,13 @@
         <el-table-column label="操作" width="200" align="center" fixed="right">
           <template #default="{ row }">
             <el-button size="small" type="primary" link @click="viewDetail(row)">详情</el-button>
-            <el-button v-if="row.status === 'PENDING'" size="small" type="success" link @click="doStart(row)">开始</el-button>
+            <el-button v-if="row.status === 'DRAFT'" size="small" type="success" link @click="doStart(row)">开始</el-button>
             <el-button v-if="row.status === 'IN_PROGRESS'" size="small" type="warning" link @click="doSubmit(row)">提交审批</el-button>
             <el-button v-if="row.status === 'PENDING_APPROVAL'" size="small" type="success" link @click="doApprove(row)">通过</el-button>
             <el-button v-if="row.status === 'PENDING_APPROVAL'" size="small" type="danger" link @click="doReject(row)">驳回</el-button>
             <el-button v-if="row.status === 'APPROVED'" size="small" type="primary" link @click="doComplete(row)">完成</el-button>
             <el-button
-              v-if="['PENDING', 'IN_PROGRESS', 'PENDING_APPROVAL', 'APPROVED'].includes(row.status)"
+              v-if="['DRAFT', 'IN_PROGRESS', 'PENDING_APPROVAL', 'APPROVED'].includes(row.status)"
               size="small" type="info" link @click="doCancel(row)">取消</el-button>
           </template>
         </el-table-column>
@@ -219,8 +219,8 @@ const filterForm = reactive({
 })
 
 const statusLabels: Record<string, string> = {
-  PENDING: '待开始',
-  IN_PROGRESS: '盘点中',
+  DRAFT: '草稿',
+  IN_PROGRESS: '进行中',
   PENDING_APPROVAL: '待审批',
   APPROVED: '已审批',
   REJECTED: '已驳回',
@@ -232,7 +232,7 @@ const statusLabel = (status: string): string => statusLabels[status] ?? status
 
 const statusTagType = (status: string): 'primary' | 'success' | 'info' | 'warning' | 'danger' => {
   const map: Record<string, 'primary' | 'success' | 'info' | 'warning' | 'danger'> = {
-    PENDING: 'info',
+    DRAFT: 'info',
     IN_PROGRESS: 'primary',
     PENDING_APPROVAL: 'warning',
     APPROVED: 'success',

@@ -7,14 +7,14 @@
           <h2>药库库存</h2>
           <div class="header-actions">
             <el-input
-              v-model="filterForm.drug_code"
+              v-model="filterForm.drugCode"
               placeholder="药品编码"
               clearable
               style="width: 160px"
               @keyup.enter="applyFilter"
             />
             <el-input
-              v-model="filterForm.batch_no"
+              v-model="filterForm.batchNo"
               placeholder="批次号"
               clearable
               style="width: 160px"
@@ -166,8 +166,8 @@ const pageSize = ref(10)
 const total = ref(0)
 
 const filterForm = reactive({
-  drug_code: '',
-  batch_no: '',
+  drugCode: '',
+  batchNo: '',
 })
 
 const lowStockLoading = ref(false)
@@ -206,8 +206,8 @@ function applyFilter() {
 }
 
 function resetFilter() {
-  filterForm.drug_code = ''
-  filterForm.batch_no = ''
+  filterForm.drugCode = ''
+  filterForm.batchNo = ''
   currentPage.value = 1
   loadStock()
 }
@@ -216,8 +216,8 @@ async function loadStock() {
   loading.value = true
   try {
     const result = await inventoryApi.queryStock({
-      drug_code: filterForm.drug_code || undefined,
-      batch_no: filterForm.batch_no || undefined,
+      drugCode: filterForm.drugCode || undefined,
+      batchNo: filterForm.batchNo || undefined,
       page: currentPage.value - 1,
       size: pageSize.value,
     })

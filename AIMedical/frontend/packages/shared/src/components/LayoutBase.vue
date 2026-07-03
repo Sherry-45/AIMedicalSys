@@ -50,7 +50,7 @@ const sidebarStyle = computed(() => ({
 }
 
 .sidebar {
-  width: 200px;
+  width: 220px;
 }
 
 .main-container {

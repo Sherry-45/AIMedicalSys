@@ -160,16 +160,16 @@
             {{ detail.refund_reason || '—' }}
           </el-descriptions-item>
           <el-descriptions-item label="退费时间">
-            {{ formatDateTime(detail.refund_time) }}
+            {{ formatDateTime(detail.refunded_at) }}
           </el-descriptions-item>
           <el-descriptions-item label="是否对账">
-            {{ detail.reconciled ? '是' : '否' }}
+            {{ detail.reconciled_at ? '是' : '否' }}
           </el-descriptions-item>
           <el-descriptions-item label="对账批次">
             {{ detail.reconcile_batch_no || '—' }}
           </el-descriptions-item>
           <el-descriptions-item label="对账时间">
-            {{ formatDateTime(detail.reconcile_time) }}
+            {{ formatDateTime(detail.reconciled_at) }}
           </el-descriptions-item>
           <el-descriptions-item label="备注" :span="2">
             {{ detail.remark || '—' }}
@@ -253,7 +253,7 @@
           </template>
         </el-table-column>
         <el-table-column label="对账时间" width="170">
-          <template #default="{ row }">{{ formatDateTime(row.reconcile_time) }}</template>
+          <template #default="{ row }">{{ formatDateTime(row.reconciled_at) }}</template>
         </el-table-column>
         <template #empty>
           <el-empty description="该批次无记录" />
@@ -329,9 +329,9 @@ function handleSelectionChange(rows: PaymentRecordResponse[]) {
   selectedRows.value = rows
 }
 
-// 只有已支付且未对账的记录可被选中对账
+// 只有已支付的记录可被选中对账
 function canSelectRow(row: PaymentRecordResponse): boolean {
-  return row.status === 'PAID' && !row.reconciled
+  return row.status === 'PAID'
 }
 
 // ---- 状态展示 ----
@@ -342,6 +342,7 @@ const statusLabel = (status: PaymentStatus): string => {
     PAID: '已支付',
     REFUNDED: '已退费',
     RECONCILED: '已对账',
+    CANCELLED: '已取消',
   }
   return map[status] || status
 }
@@ -354,6 +355,7 @@ const statusTagType = (
     PAID: 'success',
     REFUNDED: 'danger',
     RECONCILED: 'primary',
+    CANCELLED: 'info',
   }
   return map[status] || 'info'
 }
@@ -425,7 +427,7 @@ async function submitReconcile() {
       return
     }
     ElMessage.success(
-      `对账成功，批次号：${result.batch_no ?? '—'}，共 ${result.reconciled_count ?? 0} 条`,
+      `对账成功，批次号：${result.reconcile_batch_no ?? '—'}，共 ${result.reconciled_count ?? 0} 条`,
     )
     reconcileVisible.value = false
     loadList()

@@ -11,7 +11,7 @@
               clearable
               size="default"
               style="width: 150px"
-              @keyup.enter="loadList"
+              @keyup.enter="search"
             />
             <el-input
               v-model="queryForm.drugName"
@@ -19,19 +19,19 @@
               clearable
               size="default"
               style="width: 160px"
-              @keyup.enter="loadList"
+              @keyup.enter="search"
             />
-            <el-button :loading="loading" @click="loadList">查询</el-button>
+            <el-button :loading="loading" @click="search">查询</el-button>
             <el-button type="warning" @click="loadLowStock">低库存预警</el-button>
           </div>
         </div>
       </template>
 
-      <el-table :data="pagedList" border style="width: 100%">
-        <el-table-column label="药品编码" prop="drugCode" width="140" />
-        <el-table-column label="药品名称" prop="drugName" min-width="160" />
+      <el-table :data="list" border style="width: 100%">
+        <el-table-column label="药品编码" prop="drug_code" width="140" />
+        <el-table-column label="药品名称" prop="drug_name" min-width="160" />
         <el-table-column label="规格" prop="specification" width="120" />
-        <el-table-column label="批号" prop="batchNo" width="120" />
+        <el-table-column label="批号" prop="batch_no" width="120" />
         <el-table-column label="库存量" width="100" align="center">
           <template #default="{ row }">
             <span :class="{ 'low-stock-text': isLowStock(row) }">{{ row.quantity }}</span>
@@ -39,12 +39,12 @@
           </template>
         </el-table-column>
         <el-table-column label="单价" width="100" align="right">
-          <template #default="{ row }">{{ formatAmount(row.unitPrice) }}</template>
+          <template #default="{ row }">{{ formatAmount(row.retail_price) }}</template>
         </el-table-column>
         <el-table-column label="有效期至" width="130">
-          <template #default="{ row }">{{ formatDate(row.expiryDate) }}</template>
+          <template #default="{ row }">{{ formatDate(row.expiry_date) }}</template>
         </el-table-column>
-        <el-table-column label="预警阈值" prop="warningThreshold" width="100" align="center" />
+        <el-table-column label="预警阈值" prop="safety_stock" width="100" align="center" />
         <el-table-column label="库存状态" width="110" align="center">
           <template #default="{ row }">
             <el-tag v-if="isLowStock(row)" type="danger">低库存</el-tag>
@@ -54,7 +54,7 @@
         </el-table-column>
         <el-table-column label="操作" width="100" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" link @click="handleView(row.drugCode)">详情</el-button>
+            <el-button size="small" link @click="handleView(row.drug_code)">详情</el-button>
           </template>
         </el-table-column>
         <template #empty>
@@ -62,13 +62,16 @@
         </template>
       </el-table>
 
-      <div v-if="list.length > pageSize" class="pagination-wrapper">
+      <div v-if="!showingLowStock" class="pagination-wrapper">
         <el-pagination
           v-model:current-page="currentPage"
-          :page-size="pageSize"
-          :total="list.length"
-          layout="prev, pager, next, total"
+          v-model:page-size="pageSize"
+          :total="total"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next"
           background
+          @current-change="loadList"
+          @size-change="onSizeChange"
         />
       </div>
     </el-card>
@@ -76,25 +79,25 @@
     <!-- 库存详情对话框 -->
     <el-dialog v-model="detailVisible" title="库存详情" width="560px">
       <el-descriptions v-if="detail" :column="2" border>
-        <el-descriptions-item label="药品编码">{{ detail.drugCode }}</el-descriptions-item>
-        <el-descriptions-item label="药品名称">{{ detail.drugName || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="药品编码">{{ detail.drug_code }}</el-descriptions-item>
+        <el-descriptions-item label="药品名称">{{ detail.drug_name || '—' }}</el-descriptions-item>
         <el-descriptions-item label="规格">{{ detail.specification || '—' }}</el-descriptions-item>
-        <el-descriptions-item label="批号">{{ detail.batchNo || '—' }}</el-descriptions-item>
+        <el-descriptions-item label="批号">{{ detail.batch_no || '—' }}</el-descriptions-item>
         <el-descriptions-item label="库存量">
           {{ detail.quantity }}{{ detail.unit ? ' / ' + detail.unit : '' }}
         </el-descriptions-item>
-        <el-descriptions-item label="单价">{{ formatAmount(detail.unitPrice) }}</el-descriptions-item>
-        <el-descriptions-item label="预警阈值">{{ detail.warningThreshold ?? '—' }}</el-descriptions-item>
-        <el-descriptions-item label="有效期至">{{ formatDate(detail.expiryDate) }}</el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ formatDateTime(detail.createdAt) }}</el-descriptions-item>
-        <el-descriptions-item label="更新时间">{{ formatDateTime(detail.updatedAt) }}</el-descriptions-item>
+        <el-descriptions-item label="单价">{{ formatAmount(detail.retail_price) }}</el-descriptions-item>
+        <el-descriptions-item label="预警阈值">{{ detail.safety_stock ?? '—' }}</el-descriptions-item>
+        <el-descriptions-item label="有效期至">{{ formatDate(detail.expiry_date) }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ formatDateTime(detail.created_at) }}</el-descriptions-item>
+        <el-descriptions-item label="更新时间">{{ formatDateTime(detail.updated_at) }}</el-descriptions-item>
       </el-descriptions>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { pharmacyApi, isBusinessError } from '@aimedical/shared'
 import type { PharmacyStockResponse } from '@aimedical/shared'
@@ -109,28 +112,36 @@ const queryForm = reactive({
 })
 
 const currentPage = ref(1)
-const pageSize = 10
-
-const pagedList = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  return list.value.slice(start, start + pageSize)
-})
+const pageSize = ref(10)
+const total = ref(0)
 
 // ---- 查询库存 ----
+function search() {
+  currentPage.value = 1
+  loadList()
+}
+
+function onSizeChange() {
+  currentPage.value = 1
+  loadList()
+}
+
 async function loadList() {
   loading.value = true
   showingLowStock.value = false
   try {
-    const params: Record<string, unknown> = {}
-    if (queryForm.drugCode) params.drugCode = queryForm.drugCode
-    if (queryForm.drugName) params.drugName = queryForm.drugName
-    const result = await pharmacyApi.queryStock(params)
+    const result = await pharmacyApi.queryStock({
+      drugCode: queryForm.drugCode || undefined,
+      drugName: queryForm.drugName || undefined,
+      page: currentPage.value - 1,
+      size: pageSize.value,
+    })
     if (isBusinessError(result)) {
       ElMessage.error(result.message)
       return
     }
-    list.value = result
-    currentPage.value = 1
+    list.value = result.content ?? []
+    total.value = result.totalElements ?? 0
   } finally {
     loading.value = false
   }
@@ -147,7 +158,6 @@ async function loadLowStock() {
       return
     }
     list.value = result
-    currentPage.value = 1
     if (result.length === 0) {
       ElMessage.success('暂无低库存药品')
     } else {
@@ -190,13 +200,13 @@ const formatAmount = (n: number | null | undefined): string => {
 }
 
 function isLowStock(row: PharmacyStockResponse): boolean {
-  if (row.warningThreshold === null || row.warningThreshold === undefined) return false
-  return row.quantity <= row.warningThreshold
+  if (row.safety_stock === null || row.safety_stock === undefined) return false
+  return row.quantity <= row.safety_stock
 }
 
 function isExpiringSoon(row: PharmacyStockResponse): boolean {
-  if (!row.expiryDate) return false
-  const expiry = new Date(row.expiryDate).getTime()
+  if (!row.expiry_date) return false
+  const expiry = new Date(row.expiry_date).getTime()
   const now = Date.now()
   const thirtyDays = 30 * 24 * 60 * 60 * 1000
   return expiry - now < thirtyDays && expiry > now

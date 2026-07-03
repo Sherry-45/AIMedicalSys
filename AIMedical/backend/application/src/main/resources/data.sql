@@ -112,3 +112,107 @@ MERGE INTO triage_record (id, patient_id, chief_complaint, session_id, recommend
 (1, 3, '头痛3天，伴有恶心，前额搏动性疼痛', 'mock-session-001', '神经内科,普通内科,中医科', '王主任,张副主任,李主治医师', false, 'v1.0.0', 'rule-set-neuro', '头痛规则-偏头痛,头痛规则-紧张性', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
 (2, 3, '发烧2天，体温38.5°C，咳嗽咽痛', 'mock-session-002', '呼吸内科,普通内科,感染科', '王主任,李主治医师', false, 'v1.0.0', 'rule-set-resp', '发热规则-上感,咳嗽规则', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
 (3, 3, '腹痛1天，右下腹持续性疼痛', 'mock-degraded-001', '普通内科', '张副主任', true, 'v1.0.0', 'rule-set-abd', '', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+
+-- ===========================================================================
+-- Phase4 种子数据：药房 / 药库 / 窗口 业务数据（用于前端测试）
+-- ===========================================================================
+
+-- 药品目录（drug_catalog）
+MERGE INTO drug_catalog (id, drug_code, drug_name, generic_name, specification, manufacturer, drug_form, drug_category, unit, retail_price, purchase_price, otc_flag, enabled, version, deleted, created_at, updated_at) KEY(id) VALUES
+(1, 'AMX001', '阿莫西林胶囊', '阿莫西林', '0.25g*24粒', '华北制药', 'CAPSULE', 'WESTERN_MEDICINE', '盒', 25.00, 15.00, TRUE, TRUE, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 'IBU001', '布洛芬片', '布洛芬', '0.2g*20片', '中美史克', 'TABLET', 'WESTERN_MEDICINE', '盒', 15.00, 8.00, TRUE, TRUE, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, 'BLG001', '板蓝根颗粒', '板蓝根', '10g*20袋', '白云山', 'GRANULE', 'CHINESE_MEDICINE', '盒', 12.00, 6.00, TRUE, TRUE, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(4, 'INS001', '胰岛素注射液', '胰岛素', '10ml:400单位', '诺和诺德', 'INJECTION', 'BIOLOGICAL', '支', 85.00, 60.00, FALSE, TRUE, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(5, 'SYR001', '一次性注射器', NULL, '5ml', '康德莱', 'DEVICE', 'DEVICE', '个', 2.50, 1.20, FALSE, TRUE, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(6, 'CCL001', '头孢克洛胶囊', '头孢克洛', '0.25g*12粒', '礼来', 'CAPSULE', 'WESTERN_MEDICINE', '盒', 35.00, 22.00, FALSE, TRUE, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+
+-- 药库库存（inventory_stock）
+MERGE INTO inventory_stock (id, drug_code, batch_no, quantity, unit, purchase_price, retail_price, expiry_date, production_date, warehouse_location, version, deleted, created_at, updated_at) KEY(id) VALUES
+(1, 'AMX001', 'AMX202601', 1000, '盒', 15.00, 25.00, '2027-06-30', '2026-01-15', 'A-01-01', 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 'IBU001', 'IBU202602', 800, '盒', 8.00, 15.00, '2027-12-31', '2026-02-20', 'A-01-02', 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, 'BLG001', 'BLG202603', 500, '盒', 6.00, 12.00, '2027-09-30', '2026-03-10', 'A-02-01', 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(4, 'INS001', 'INS202604', 200, '支', 60.00, 85.00, '2027-03-31', '2026-04-05', 'B-01-01', 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(5, 'SYR001', 'SYR202605', 2000, '个', 1.20, 2.50, '2028-01-31', '2026-05-12', 'B-02-01', 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(6, 'CCL001', 'CCL202606', 600, '盒', 22.00, 35.00, '2027-08-31', '2026-06-01', 'A-03-01', 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+
+-- 药房库存（pharmacy_stock）
+MERGE INTO pharmacy_stock (id, drug_code, drug_name, batch_no, quantity, unit, retail_price, expiry_date, shelf_location, safety_stock, version, deleted, created_at, updated_at) KEY(id) VALUES
+(1, 'AMX001', '阿莫西林胶囊', 'AMX202601', 100, '盒', 25.00, '2027-06-30', 'P-01-01', 20, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 'IBU001', '布洛芬片', 'IBU202602', 80, '盒', 15.00, '2027-12-31', 'P-01-02', 15, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, 'BLG001', '板蓝根颗粒', 'BLG202603', 50, '盒', 12.00, '2027-09-30', 'P-02-01', 10, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(4, 'CCL001', '头孢克洛胶囊', 'CCL202606', 60, '盒', 35.00, '2027-08-31', 'P-03-01', 10, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+
+-- 发药记录（dispensing_record）
+MERGE INTO dispensing_record (id, dispensing_no, patient_id, patient_name, pharmacist_id, pharmacist_name, status, total_quantity, total_amount, dispensed_at, version, deleted, created_at, updated_at) KEY(id) VALUES
+(1, 'DISP20260704001', 1, '李明', 2, '张医生', 'PENDING', 3, 65.00, NULL, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 'DISP20260704002', 1, '李明', 2, '张医生', 'DISPENSED', 3, 36.00, CURRENT_TIMESTAMP(), 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, 'DISP20260704003', 1, '李明', 2, '张医生', 'DISPENSED', 2, 60.00, CURRENT_TIMESTAMP(), 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+
+-- 发药明细（dispensing_item）
+MERGE INTO dispensing_item (id, dispensing_id, drug_code, drug_name, specification, batch_no, quantity, unit, unit_price, amount, dosage, usage_method, frequency, days, version, deleted, created_at, updated_at) KEY(id) VALUES
+(1, 1, 'AMX001', '阿莫西林胶囊', '0.25g*24粒', 'AMX202601', 2, '盒', 25.00, 50.00, '每次1粒', '口服', '每日3次', 5, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 1, 'IBU001', '布洛芬片', '0.2g*20片', 'IBU202602', 1, '盒', 15.00, 15.00, '每次1片', '口服', '必要时', 3, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, 2, 'BLG001', '板蓝根颗粒', '10g*20袋', 'BLG202603', 3, '盒', 12.00, 36.00, '每次1袋', '冲服', '每日2次', 5, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(4, 3, 'CCL001', '头孢克洛胶囊', '0.25g*12粒', 'CCL202606', 2, '盒', 35.00, 70.00, '每次1粒', '口服', '每日2次', 7, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(5, 3, 'AMX001', '阿莫西林胶囊', '0.25g*24粒', 'AMX202601', 1, '盒', 25.00, 25.00, '每次1粒', '口服', '每日3次', 5, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+
+-- 退药记录（pharmacy_refund_record）
+MERGE INTO pharmacy_refund_record (id, refund_no, dispensing_id, patient_id, patient_name, pharmacist_id, pharmacist_name, status, refund_reason, total_quantity, total_amount, version, deleted, created_at, updated_at) KEY(id) VALUES
+(1, 'REF20260704001', 2, 1, '李明', 2, '张医生', 'PENDING', '患者药物过敏需退药', 3, 36.00, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+
+-- 退药明细（pharmacy_refund_item）
+MERGE INTO pharmacy_refund_item (id, refund_id, dispensing_item_id, drug_code, drug_name, batch_no, quantity, unit, unit_price, amount, version, deleted, created_at, updated_at) KEY(id) VALUES
+(1, 1, 3, 'BLG001', '板蓝根颗粒', 'BLG202603', 3, '盒', 12.00, 36.00, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+
+-- 线下挂号（offline_registration）
+MERGE INTO offline_registration (id, registration_no, patient_id, patient_name, patient_phone, id_card, doctor_id, doctor_name, department, registration_type, status, registration_fee, operator_id, operator_name, version, deleted, created_at, updated_at) KEY(id) VALUES
+(1, 'REG20260704001', 1, '李明', '13800138003', '110101199001011234', 2, '张医生', '内科', 'OUTPATIENT', 'ACTIVE', 30.00, 2, '张医生', 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 'REG20260704002', 1, '王芳', '13900139002', '110101198505056789', 2, '张医生', '内科', 'OUTPATIENT', 'ACTIVE', 30.00, 2, '张医生', 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, 'REG20260704003', 1, '赵强', '13700137003', '110101199203031111', 2, '张医生', '急诊', 'EMERGENCY', 'CANCELLED', 50.00, 2, '张医生', 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+
+-- 缴费记录（payment_record）
+MERGE INTO payment_record (id, payment_no, patient_id, patient_name, source_id, source_type, source_no, total_amount, paid_amount, refund_amount, status, payment_method, payer_name, operator_id, operator_name, paid_at, version, deleted, created_at, updated_at) KEY(id) VALUES
+(1, 'PAY20260704001', 1, '李明', 1, 'REGISTRATION', 'REG20260704001', 30.00, 30.00, 0.00, 'PAID', 'CASH', '李明', 2, '张医生', CURRENT_TIMESTAMP(), 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 'PAY20260704002', 1, '李明', 2, 'DISPENSING', 'DISP20260704002', 36.00, 36.00, 0.00, 'PAID', 'WECHAT', '李明', 2, '张医生', CURRENT_TIMESTAMP(), 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, 'PAY20260704003', 1, '王芳', 2, 'REGISTRATION', 'REG20260704002', 30.00, 0.00, 0.00, 'PENDING', 'CASH', '王芳', 2, '张医生', NULL, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+
+-- 缴费明细（payment_item）
+MERGE INTO payment_item (id, payment_id, item_type, item_name, quantity, unit_price, amount, version, deleted, created_at, updated_at) KEY(id) VALUES
+(1, 1, 'REGISTRATION_FEE', '门诊挂号费', 1, 30.00, 30.00, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 2, 'DRUG_FEE', '板蓝根颗粒', 3, 12.00, 36.00, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, 3, 'REGISTRATION_FEE', '门诊挂号费', 1, 30.00, 30.00, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+
+-- 调拨单（transfer_order）
+MERGE INTO transfer_order (id, transfer_no, transfer_type, status, source_dept, target_dept, applicant_id, applicant_name, approver_id, approver_name, approved_at, total_items, total_amount, version, deleted, created_at, updated_at) KEY(id) VALUES
+(1, 'TRF20260704001', 'INVENTORY_TO_PHARMACY', 'APPROVED', '药库', '门诊药房', 2, '张医生', 1, '管理员', CURRENT_TIMESTAMP(), 1, 1250.00, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 'TRF20260704002', 'INVENTORY_TO_PHARMACY', 'PENDING_APPROVAL', '药库', '门诊药房', 2, '张医生', NULL, NULL, NULL, 1, 450.00, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+
+-- 调拨明细（transfer_item）
+MERGE INTO transfer_item (id, transfer_id, drug_code, drug_name, specification, batch_no, quantity, unit, unit_price, amount, version, deleted, created_at, updated_at) KEY(id) VALUES
+(1, 1, 'AMX001', '阿莫西林胶囊', '0.25g*24粒', 'AMX202601', 50, '盒', 25.00, 1250.00, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 2, 'IBU001', '布洛芬片', '0.2g*20片', 'IBU202602', 30, '盒', 15.00, 450.00, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+
+-- 盘点单（stocktaking）
+MERGE INTO stocktaking (id, stocktaking_no, stocktaking_type, status, operator_id, operator_name, start_time, total_items, surplus_items, loss_items, version, deleted, created_at, updated_at) KEY(id) VALUES
+(1, 'STK20260704001', 'FULL', 'IN_PROGRESS', 2, '张医生', CURRENT_TIMESTAMP(), 2, 1, 1, 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+
+-- 盘点明细（stocktaking_item）
+MERGE INTO stocktaking_item (id, stocktaking_id, drug_code, drug_name, batch_no, book_quantity, actual_quantity, difference, difference_type, unit, version, deleted, created_at, updated_at) KEY(id) VALUES
+(1, 1, 'AMX001', '阿莫西林胶囊', 'AMX202601', 1000, 998, -2, 'LOSS', '盒', 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 1, 'IBU001', '布洛芬片', 'IBU202602', 800, 805, 5, 'SURPLUS', '盒', 0, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+
+-- 重置自增计数器，避免后续业务 INSERT 主键冲突
+ALTER TABLE drug_catalog ALTER COLUMN id RESTART WITH 7;
+ALTER TABLE inventory_stock ALTER COLUMN id RESTART WITH 7;
+ALTER TABLE pharmacy_stock ALTER COLUMN id RESTART WITH 5;
+ALTER TABLE dispensing_record ALTER COLUMN id RESTART WITH 4;
+ALTER TABLE dispensing_item ALTER COLUMN id RESTART WITH 6;
+ALTER TABLE pharmacy_refund_record ALTER COLUMN id RESTART WITH 2;
+ALTER TABLE pharmacy_refund_item ALTER COLUMN id RESTART WITH 2;
+ALTER TABLE offline_registration ALTER COLUMN id RESTART WITH 4;
+ALTER TABLE payment_record ALTER COLUMN id RESTART WITH 4;
+ALTER TABLE payment_item ALTER COLUMN id RESTART WITH 4;
+ALTER TABLE transfer_order ALTER COLUMN id RESTART WITH 3;
+ALTER TABLE transfer_item ALTER COLUMN id RESTART WITH 3;
+ALTER TABLE stocktaking ALTER COLUMN id RESTART WITH 2;
+ALTER TABLE stocktaking_item ALTER COLUMN id RESTART WITH 3;

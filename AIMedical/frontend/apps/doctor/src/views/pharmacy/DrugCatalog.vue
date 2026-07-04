@@ -6,7 +6,7 @@
           <h2>药品目录</h2>
           <div class="header-actions">
             <el-input
-              v-model="queryForm.drugCode"
+              v-model="queryForm.drug_code"
               placeholder="药品编码"
               clearable
               size="default"
@@ -14,7 +14,7 @@
               @keyup.enter="search"
             />
             <el-input
-              v-model="queryForm.drugName"
+              v-model="queryForm.drug_name"
               placeholder="药品名称"
               clearable
               size="default"
@@ -22,7 +22,7 @@
               @keyup.enter="search"
             />
             <el-select
-              v-model="queryForm.drugCategory"
+              v-model="queryForm.drug_category"
               placeholder="药品分类"
               clearable
               size="default"
@@ -226,9 +226,9 @@ const submitting = ref(false)
 const list = ref<DrugCatalogResponse[]>([])
 
 const queryForm = reactive({
-  drugCode: '',
-  drugName: '',
-  drugCategory: undefined as string | undefined,
+  drug_code: '',
+  drug_name: '',
+  drug_category: undefined as string | undefined,
   enabled: undefined as boolean | undefined,
 })
 
@@ -251,9 +251,9 @@ async function loadList() {
   loading.value = true
   try {
     const result = await inventoryApi.queryDrugs({
-      drugCode: queryForm.drugCode || undefined,
-      drugName: queryForm.drugName || undefined,
-      drugCategory: queryForm.drugCategory || undefined,
+      drug_code: queryForm.drug_code || undefined,
+      drug_name: queryForm.drug_name || undefined,
+      drug_category: queryForm.drug_category || undefined,
       enabled: queryForm.enabled,
       page: currentPage.value - 1,
       size: pageSize.value,

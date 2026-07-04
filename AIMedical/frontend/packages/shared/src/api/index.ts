@@ -1,5 +1,5 @@
 import type { BusinessError, LoginRequest, LoginResponse, UserInfo, MenuItem, TokenResponse, TokenRefreshResponse, RegisterRequest, CurrentUserResponse, TriageRequest, TriageResponse, TriageDepartment, TriageDoctor, ConsultRequest, ConsultResponse, AppointmentSlot, RegistrationRequest, RegistrationRecord, CancelResult, ExamCategory, ExamItem, ReportRecord, MedicalRecordRecord, PrescriptionRecord, PaymentRecord, TriageHistoryRecord } from '../types'
-import { apiGet, apiPost, apiPut, apiDelete } from './client'
+import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from './client'
 import { getAccessToken, setTokens, clearTokens, getRefreshToken } from '../utils'
 
 // 重新导出 axios 客户端与底层请求函数（供外部直接使用）

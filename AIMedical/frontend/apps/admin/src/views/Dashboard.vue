@@ -8,7 +8,7 @@
         </div>
       </template>
 
-      <p class="welcome-text">欢迎回来，{{ authStore.user?.nickname || authStore.user?.username || '管理员' }}</p>
+      <p class="welcome-text">欢迎回来，{{ authStore.user?.real_name || authStore.user?.username || '管理员' }}</p>
 
       <!-- 统计卡片 -->
       <el-row :gutter="16" class="stat-row">

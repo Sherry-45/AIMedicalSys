@@ -54,7 +54,7 @@ MERGE INTO sys_function (id, parent_id, code, name, description, enabled, delete
 -- 数据查看目录（仅管理员可见，用于查看患者与处方全量数据）
 (33, NULL, 'menu:data-view',    '数据查看',   '全量数据查看',     true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 2, true, 'DIRECTORY', 'data-view',   '/data-view'),
 (34, 33,   'menu:patients',     '患者管理',   '患者列表（全量）', true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 1, true, 'MENU',      'user-friend', '/patients'),
-(35, 33,   'menu:prescriptions','处方查询',   '处方列表（全量）', true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 2, true, 'MENU',      'edit-square', '/prescriptions');
+(35, 33,   'menu:data-prescriptions','处方查询','处方列表（全量）',true, false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(), 2, true, 'MENU',      'edit-square', '/prescriptions');
 
 -- 密码统一 password123 (BCrypt)
 MERGE INTO sys_user (id, username, password, nickname, phone, email, enabled, password_change_required, token_version, user_type, deleted, created_at, updated_at) KEY(id) VALUES
@@ -106,11 +106,10 @@ ALTER TABLE sys_function ALTER COLUMN id RESTART WITH 36;
 ALTER TABLE sys_user ALTER COLUMN id RESTART WITH 10;
 
 -- Phase3 种子数据：医生档案（doctor_profile）
-INSERT INTO doctor_profile (id, user_id, real_name, title, department, deleted, created_at, updated_at) VALUES
+MERGE INTO doctor_profile (id, user_id, real_name, title, department, deleted, created_at, updated_at) KEY(id) VALUES
 (1, 2, '张医生', '副主任医师', '内科', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
 (2, 4, '李医生', '主治医师',   '儿科', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-(3, 5, '王医生', '主任医师',   '外科', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())
-ON CONFLICT (id) DO NOTHING;
+(3, 5, '王医生', '主任医师',   '外科', false, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
 
 -- 重置 doctor_profile 自增计数器，避免后续业务 INSERT 主键冲突
 ALTER TABLE doctor_profile ALTER COLUMN id RESTART WITH 4;

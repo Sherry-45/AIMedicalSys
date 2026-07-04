@@ -32,8 +32,8 @@ class MovedModulePomVerificationTest {
     }
 
     @Test
-    void rootPomShouldHaveExactlyFifteenModules() {
-        assertEquals(15, rootPom.getDocumentElement()
+    void rootPomShouldHaveExactlyEighteenModules() {
+        assertEquals(18, rootPom.getDocumentElement()
             .getElementsByTagName("module").getLength());
     }
 

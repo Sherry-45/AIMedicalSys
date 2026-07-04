@@ -7,9 +7,17 @@ import com.aimedical.modules.ai.api.dto.diagnosis.DiagnosisResponse;
 import com.aimedical.modules.ai.api.dto.examination.ExaminationRecommendRequest;
 import com.aimedical.modules.ai.api.dto.examination.ExaminationRecommendResponse;
 import com.aimedical.modules.commonmodule.auth.CurrentUser;
+import com.aimedical.modules.doctor.dto.request.AiDiscussionConclusionRequest;
+import com.aimedical.modules.doctor.dto.request.AiExecutionOrderRequest;
+import com.aimedical.modules.doctor.dto.request.AiImageAnalysisRequest;
+import com.aimedical.modules.doctor.dto.request.AiInspectionReportRequest;
 import com.aimedical.modules.doctor.dto.request.AiMedicalRecordGenRequest;
 import com.aimedical.modules.doctor.dto.request.AiPrescriptionAssistRequest;
 import com.aimedical.modules.doctor.dto.request.AiPrescriptionAuditRequest;
+import com.aimedical.modules.doctor.dto.response.AiDiscussionConclusionResponse;
+import com.aimedical.modules.doctor.dto.response.AiExecutionOrderResponse;
+import com.aimedical.modules.doctor.dto.response.AiImageAnalysisResponse;
+import com.aimedical.modules.doctor.dto.response.AiInspectionReportResponse;
 import com.aimedical.modules.doctor.dto.response.AiMedicalRecordGenResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAssistResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAuditResponse;
@@ -131,5 +139,64 @@ class DoctorAiControllerTest {
 
         assertThrows(IllegalStateException.class, () -> controller.diagnosis(
                 new DiagnosisRequest(100L, "头痛", "无", "无")));
+    }
+
+    @Test
+    void generateInspectionReport_shouldDelegateToServiceWithCurrentDoctorId() {
+        AiInspectionReportRequest request = new AiInspectionReportRequest(1L, "CT", "ref-1", 100L, List.of(), "胸", "咳嗽");
+        when(currentUser.getUserId()).thenReturn(DOCTOR_ID);
+        when(doctorAiService.generateInspectionReport(request, DOCTOR_ID))
+                .thenReturn(Result.success(AiResult.success(new AiInspectionReportResponse(
+                        "", List.of(), "", "", List.of(), "", null, null))));
+
+        Result<AiResult<AiInspectionReportResponse>> result = controller.generateInspectionReport(request);
+
+        assertEquals("SUCCESS", result.getCode());
+        verify(doctorAiService).generateInspectionReport(request, DOCTOR_ID);
+    }
+
+    @Test
+    void imageAnalysis_shouldDelegateToServiceWithCurrentDoctorId() {
+        AiImageAnalysisRequest request = new AiImageAnalysisRequest("ref-1", "chest-ct-v1", 100L, null, "CT", "胸", "咳嗽", null);
+        when(currentUser.getUserId()).thenReturn(DOCTOR_ID);
+        when(doctorAiService.imageAnalysis(request, DOCTOR_ID))
+                .thenReturn(Result.success(AiResult.success(new AiImageAnalysisResponse(
+                        "", null, "", null, ""))));
+
+        Result<AiResult<AiImageAnalysisResponse>> result = controller.imageAnalysis(request);
+
+        assertEquals("SUCCESS", result.getCode());
+        verify(doctorAiService).imageAnalysis(request, DOCTOR_ID);
+    }
+
+    @Test
+    void recommendExecutionOrder_shouldDelegateToServiceWithCurrentDoctorId() {
+        List<AiExecutionOrderRequest.TaskItem> tasks = List.of(
+                new AiExecutionOrderRequest.TaskItem(2L, "LAB", "血常规", "HIGH", 101L));
+        AiExecutionOrderRequest request = new AiExecutionOrderRequest(tasks, null, "IMAGING_DOCTOR");
+        when(currentUser.getUserId()).thenReturn(DOCTOR_ID);
+        when(doctorAiService.recommendExecutionOrder(request, DOCTOR_ID))
+                .thenReturn(Result.success(AiResult.success(new AiExecutionOrderResponse(
+                        List.of(), "", Boolean.TRUE))));
+
+        Result<AiResult<AiExecutionOrderResponse>> result = controller.recommendExecutionOrder(request);
+
+        assertEquals("SUCCESS", result.getCode());
+        verify(doctorAiService).recommendExecutionOrder(request, DOCTOR_ID);
+    }
+
+    @Test
+    void discussionConclusion_shouldDelegateToServiceWithCurrentDoctorId() {
+        List<AiDiscussionConclusionRequest.Transcript> transcripts = List.of(
+                new AiDiscussionConclusionRequest.Transcript("DOCTOR", "张医生", "10:00", "考虑上呼吸道感染"));
+        AiDiscussionConclusionRequest request = new AiDiscussionConclusionRequest(transcripts);
+        when(currentUser.getUserId()).thenReturn(DOCTOR_ID);
+        when(doctorAiService.discussionConclusion(request, DOCTOR_ID))
+                .thenReturn(Result.success(AiResult.success(new AiDiscussionConclusionResponse("", "", ""))));
+
+        Result<AiResult<AiDiscussionConclusionResponse>> result = controller.discussionConclusion(request);
+
+        assertEquals("SUCCESS", result.getCode());
+        verify(doctorAiService).discussionConclusion(request, DOCTOR_ID);
     }
 }

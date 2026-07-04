@@ -38,6 +38,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../views/Dashboard.vue'),
         meta: { requiresAuth: true },
       },
+      {
+        path: '/profile',
+        name: 'DoctorProfile',
+        component: () => import('../views/DoctorProfile.vue'),
+        meta: { requiresAuth: true },
+      },
       // ---- 包A：诊疗闭环 ----
       {
         path: '/queue',
@@ -102,6 +108,13 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../views/PrescriptionDetail.vue'),
         meta: { requiresAuth: true },
       },
+      // ---- 医嘱管理 ----
+      {
+        path: '/medical-orders',
+        name: 'MedicalOrderList',
+        component: () => import('../views/MedicalOrderList.vue'),
+        meta: { requiresAuth: true },
+      },
       // ---- 包B：AI 入口 ----
       {
         path: '/ai/diagnosis',
@@ -131,6 +144,75 @@ const routes: RouteRecordRaw[] = [
         path: '/ai/medical-record-gen',
         name: 'AiMedicalRecordGen',
         component: () => import('../views/ai/AiMedicalRecordGen.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/ai/discussion-conclusion',
+        name: 'AiDiscussionConclusion',
+        component: () => import('../views/ai/AiDiscussionConclusion.vue'),
+        meta: { requiresAuth: true },
+      },
+      // ---- 检查域 (Examination) ----
+      // 静态路径须排在动态参数路径之前
+      {
+        path: '/examinations',
+        name: 'ExaminationList',
+        component: () => import('../views/examination/ExaminationList.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/examinations/report',
+        name: 'ExaminationReport',
+        component: () => import('../views/examination/ExaminationReport.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/examinations/image',
+        name: 'ExaminationImage',
+        component: () => import('../views/examination/ExaminationImage.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/examinations/order-suggest',
+        name: 'ExaminationOrderSuggest',
+        component: () => import('../views/examination/ExaminationOrderSuggest.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/examinations/:id',
+        name: 'ExaminationDetail',
+        component: () => import('../views/examination/ExaminationDetail.vue'),
+        meta: { requiresAuth: true },
+      },
+      // ---- 检验域 (LabTest) ----
+      {
+        path: '/lab-tests',
+        name: 'LabTestList',
+        component: () => import('../views/lab-test/LabTestList.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/lab-tests/report',
+        name: 'LabTestReport',
+        component: () => import('../views/lab-test/LabTestReport.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/lab-tests/trend',
+        name: 'LabTestTrend',
+        component: () => import('../views/lab-test/LabTestTrend.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/lab-tests/order-suggest',
+        name: 'LabTestOrderSuggest',
+        component: () => import('../views/lab-test/LabTestOrderSuggest.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/lab-tests/:id',
+        name: 'LabTestDetail',
+        component: () => import('../views/lab-test/LabTestDetail.vue'),
         meta: { requiresAuth: true },
       },
     ],

@@ -193,6 +193,9 @@ export const menuApi = {
 // 医生端 API
 export { doctorApi } from './doctor'
 
+// 管理员端 API
+export { adminApi } from './admin'
+
 /**
  * AI 智能导诊 API
  */

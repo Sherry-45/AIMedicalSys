@@ -187,6 +187,44 @@
               <span class="ai-icon">📝</span>
               <span class="ai-label">AI 病历生成</span>
             </div>
+            <div class="ai-item" @click="router.push('/ai/discussion-conclusion')">
+              <span class="ai-icon">💬</span>
+              <span class="ai-label">AI 讨论结论</span>
+            </div>
+          </div>
+        </el-card>
+
+        <el-card class="main-card">
+          <template #header>
+            <div class="card-header">
+              <h3>诊疗工作台</h3>
+            </div>
+          </template>
+          <div class="ai-grid">
+            <div class="ai-item" @click="router.push('/examinations')">
+              <span class="ai-icon">🏥</span>
+              <span class="ai-label">检查管理</span>
+            </div>
+            <div class="ai-item" @click="router.push('/examinations/order-suggest')">
+              <span class="ai-icon">📋</span>
+              <span class="ai-label">检查推荐</span>
+            </div>
+            <div class="ai-item" @click="router.push('/lab-tests')">
+              <span class="ai-icon">🧬</span>
+              <span class="ai-label">检验管理</span>
+            </div>
+            <div class="ai-item" @click="router.push('/lab-tests/order-suggest')">
+              <span class="ai-icon">📊</span>
+              <span class="ai-label">检验推荐</span>
+            </div>
+            <div class="ai-item" @click="router.push('/medical-orders')">
+              <span class="ai-icon">💉</span>
+              <span class="ai-label">医嘱管理</span>
+            </div>
+            <div class="ai-item" @click="router.push('/profile')">
+              <span class="ai-icon">👤</span>
+              <span class="ai-label">个人中心</span>
+            </div>
           </div>
         </el-card>
       </div>

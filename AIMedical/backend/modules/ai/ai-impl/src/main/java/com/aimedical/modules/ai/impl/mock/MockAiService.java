@@ -109,17 +109,60 @@ public class MockAiService implements AiService {
 
     @Override
     public CompletableFuture<AiResult<InspectionReportResponse>> analysisReportForInspection(InspectionReportRequest request) {
-        return CompletableFuture.completedFuture(AiResult.success(new InspectionReportResponse()));
+        InspectionReportResponse response = new InspectionReportResponse();
+        String type = request.getExaminationType() == null ? "未知" : request.getExaminationType();
+        String part = request.getBodyPart() == null ? "" : request.getBodyPart();
+        response.setReportDraft("[Mock] " + type + " 检查报告草稿：基于原始数据生成，未见明显异常。");
+        response.setImpression("[Mock] " + type + " 检查 " + part + " 影像表现：未见明显异常。");
+        response.setAuxiliaryInterpretation("[Mock] 结合临床诊断，辅助判读结论为未见明显异常。");
+        response.setFindings(List.of("影像清晰", "未见占位性病变"));
+        response.setAbnormalItems(List.of());
+        response.setComparisonSummary("[Mock] 与历史结果对比无明显变化。");
+        response.setConfidence(92.0);
+        // image_recognition 缺省（Mock 不模拟内部 3.4.7 调用）
+        return CompletableFuture.completedFuture(AiResult.success(response));
     }
 
     @Override
     public CompletableFuture<AiResult<LabTestReportResponse>> analysisReportForLabTest(LabTestReportRequest request) {
-        return CompletableFuture.completedFuture(AiResult.success(new LabTestReportResponse()));
+        LabTestReportResponse response = new LabTestReportResponse();
+        String testType = request.getTestType() == null ? "常规检验" : request.getTestType();
+        response.setReportDraft("[Mock] " + testType + " 检验报告草稿：依据原始结果数据生成，整体平稳。");
+        response.setInterpretation("[Mock] " + testType + " 检验结果整体平稳，未见危急值。");
+        response.setSuggestions(List.of("建议定期复查"));
+        response.setConfidence(90.0);
+        // 依据输入项构造异常项（status 非 NORMAL 视为异常）
+        List<LabTestReportResponse.AbnormalItem> abnormalItems =
+                (request.getItems() == null ? List.<LabTestReportRequest.Item>of() : request.getItems()).stream()
+                        .filter(it -> it.getStatus() != null && !"NORMAL".equals(it.getStatus()))
+                        .map(it -> {
+                            LabTestReportResponse.AbnormalItem ai = new LabTestReportResponse.AbnormalItem();
+                            ai.setItemName(it.getItemName());
+                            ai.setValue(it.getValue());
+                            ai.setUnit(it.getUnit());
+                            ai.setReferenceRange(it.getReferenceRange());
+                            ai.setStatus(it.getStatus());
+                            ai.setDelta(null);
+                            return ai;
+                        })
+                        .collect(java.util.stream.Collectors.toList());
+        response.setAbnormalItems(abnormalItems);
+        return CompletableFuture.completedFuture(AiResult.success(response));
     }
 
     @Override
     public CompletableFuture<AiResult<ImageAnalysisResponse>> imageAnalysis(ImageAnalysisRequest request) {
-        return CompletableFuture.completedFuture(AiResult.success(new ImageAnalysisResponse()));
+        ImageAnalysisResponse response = new ImageAnalysisResponse();
+        String modelId = request.getModelId() == null ? "MOCK_MODEL" : request.getModelId();
+        response.setModelId(modelId);
+        ImageAnalysisResponse.RecognitionResult result = new ImageAnalysisResponse.RecognitionResult();
+        result.setRegions(List.of("未见明显异常区域"));
+        result.setLabels(List.of("normal"));
+        result.setScores(List.of(0.92));
+        response.setRecognitionResult(result);
+        response.setConfidence(88.0);
+        response.setAuxiliaryAdvice("[Mock] 建议结合临床进一步评估。");
+        return CompletableFuture.completedFuture(AiResult.success(response));
     }
 
     @Override
@@ -139,7 +182,43 @@ public class MockAiService implements AiService {
 
     @Override
     public CompletableFuture<AiResult<ExecutionOrderResponse>> recommendExecutionOrder(ExecutionOrderRequest request) {
-        return CompletableFuture.completedFuture(AiResult.success(new ExecutionOrderResponse()));
+        ExecutionOrderResponse response = new ExecutionOrderResponse();
+        List<ExecutionOrderRequest.TaskItem> tasks = request.getTaskItems() == null
+                ? List.of()
+                : request.getTaskItems();
+        // 按紧急度排序：HIGH > MEDIUM > LOW，同级别保持原序（稳定排序）
+        List<ExecutionOrderResponse.OrderItem> order = new java.util.ArrayList<>();
+        for (ExecutionOrderRequest.TaskItem task : tasks) {
+            ExecutionOrderResponse.OrderItem item = new ExecutionOrderResponse.OrderItem();
+            item.setTaskId(task.getTaskId());
+            String urgency = task.getUrgencyHint() == null ? "MEDIUM" : task.getUrgencyHint();
+            switch (urgency) {
+                case "HIGH":
+                    item.setPriority("P1");
+                    break;
+                case "MEDIUM":
+                    item.setPriority("P2");
+                    break;
+                default:
+                    item.setPriority("P3");
+                    break;
+            }
+            item.setRecommendedTime(null);
+            item.setReason("[Mock] 紧急度 " + urgency + " 对应优先级 " + item.getPriority());
+            order.add(item);
+        }
+        // 按 P1 > P2 > P3 排序
+        order.sort(java.util.Comparator.comparingInt(o -> {
+            switch (o.getPriority()) {
+                case "P1": return 1;
+                case "P2": return 2;
+                default: return 3;
+            }
+        }));
+        response.setExecutionOrder(order);
+        response.setSummary("[Mock] 按紧急度优先级排序，共 " + order.size() + " 项任务。");
+        response.setDisclaimerRequired(true);
+        return CompletableFuture.completedFuture(AiResult.success(response));
     }
 
     @Override

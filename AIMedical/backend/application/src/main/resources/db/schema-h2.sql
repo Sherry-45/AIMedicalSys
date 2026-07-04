@@ -514,4 +514,368 @@ CREATE TABLE `drug_contraindication_mapping` (
   UNIQUE KEY `uk_drug_contra_drug_code` (`drug_code`)
 );
 
+-- =============================================
+-- Phase 4: 药房域 / 药库域 / 线下窗口 / 健康档案增强
+-- =============================================
+
+-- 35. drug_catalog
+DROP TABLE IF EXISTS `drug_catalog`;
+CREATE TABLE `drug_catalog` (
+  `id`              BIGINT        NOT NULL AUTO_INCREMENT,
+  `drug_code`       VARCHAR(64)   NOT NULL,
+  `drug_name`       VARCHAR(255)  NOT NULL,
+  `generic_name`    VARCHAR(255)  DEFAULT NULL,
+  `specification`   VARCHAR(255)  DEFAULT NULL,
+  `manufacturer`    VARCHAR(255)  DEFAULT NULL,
+  `drug_form`       VARCHAR(50)   DEFAULT NULL,
+  `drug_category`   VARCHAR(50)   NOT NULL,
+  `unit`            VARCHAR(20)   DEFAULT NULL,
+  `retail_price`    DECIMAL(10,2) DEFAULT NULL,
+  `purchase_price`  DECIMAL(10,2) DEFAULT NULL,
+  `otc_flag`        BOOLEAN       DEFAULT FALSE,
+  `enabled`         BOOLEAN       NOT NULL DEFAULT TRUE,
+  `remark`          VARCHAR(500)  DEFAULT NULL,
+  `version`         BIGINT        DEFAULT 0,
+  `created_at`      TIMESTAMP     DEFAULT NULL,
+  `updated_at`      TIMESTAMP     DEFAULT NULL,
+  `deleted`         BOOLEAN       NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_drug_code` (`drug_code`)
+);
+
+-- 36. inventory_stock
+DROP TABLE IF EXISTS `inventory_stock`;
+CREATE TABLE `inventory_stock` (
+  `id`              BIGINT        NOT NULL AUTO_INCREMENT,
+  `drug_code`       VARCHAR(64)   NOT NULL,
+  `batch_no`        VARCHAR(64)   DEFAULT NULL,
+  `quantity`        DECIMAL(12,2) NOT NULL DEFAULT 0,
+  `unit`            VARCHAR(20)   DEFAULT NULL,
+  `purchase_price`  DECIMAL(10,2) DEFAULT NULL,
+  `retail_price`    DECIMAL(10,2) DEFAULT NULL,
+  `expiry_date`     DATE          DEFAULT NULL,
+  `production_date` DATE          DEFAULT NULL,
+  `warehouse_location` VARCHAR(64) DEFAULT NULL,
+  `remark`          VARCHAR(500)  DEFAULT NULL,
+  `version`         BIGINT        DEFAULT 0,
+  `created_at`      TIMESTAMP     DEFAULT NULL,
+  `updated_at`      TIMESTAMP     DEFAULT NULL,
+  `deleted`         BOOLEAN       NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`)
+);
+
+-- 37. pharmacy_stock
+DROP TABLE IF EXISTS `pharmacy_stock`;
+CREATE TABLE `pharmacy_stock` (
+  `id`              BIGINT        NOT NULL AUTO_INCREMENT,
+  `drug_code`       VARCHAR(64)   NOT NULL,
+  `drug_name`       VARCHAR(255)  DEFAULT NULL,
+  `batch_no`        VARCHAR(64)   DEFAULT NULL,
+  `quantity`        DECIMAL(12,2) NOT NULL DEFAULT 0,
+  `unit`            VARCHAR(20)   DEFAULT NULL,
+  `retail_price`    DECIMAL(10,2) DEFAULT NULL,
+  `expiry_date`     DATE          DEFAULT NULL,
+  `shelf_location`  VARCHAR(64)   DEFAULT NULL,
+  `safety_stock`    DECIMAL(12,2) DEFAULT 0,
+  `remark`          VARCHAR(500)  DEFAULT NULL,
+  `version`         BIGINT        DEFAULT 0,
+  `created_at`      TIMESTAMP     DEFAULT NULL,
+  `updated_at`      TIMESTAMP     DEFAULT NULL,
+  `deleted`         BOOLEAN       NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`)
+);
+
+-- 38. dispensing_record
+DROP TABLE IF EXISTS `dispensing_record`;
+CREATE TABLE `dispensing_record` (
+  `id`                BIGINT        NOT NULL AUTO_INCREMENT,
+  `dispensing_no`     VARCHAR(32)   NOT NULL,
+  `prescription_id`   BIGINT        DEFAULT NULL,
+  `medical_order_id`  BIGINT        DEFAULT NULL,
+  `patient_id`        BIGINT        DEFAULT NULL,
+  `patient_name`      VARCHAR(64)   DEFAULT NULL,
+  `pharmacist_id`     BIGINT        DEFAULT NULL,
+  `pharmacist_name`   VARCHAR(64)   DEFAULT NULL,
+  `status`            VARCHAR(20)   NOT NULL DEFAULT 'PENDING',
+  `total_quantity`    DECIMAL(12,2) DEFAULT NULL,
+  `total_amount`      DECIMAL(10,2) DEFAULT NULL,
+  `dispensed_at`      TIMESTAMP     DEFAULT NULL,
+  `remark`            VARCHAR(500)  DEFAULT NULL,
+  `version`           BIGINT        DEFAULT 0,
+  `created_at`        TIMESTAMP     DEFAULT NULL,
+  `updated_at`        TIMESTAMP     DEFAULT NULL,
+  `deleted`           BOOLEAN       NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_dispensing_no` (`dispensing_no`)
+);
+
+-- 39. dispensing_item
+DROP TABLE IF EXISTS `dispensing_item`;
+CREATE TABLE `dispensing_item` (
+  `id`                BIGINT        NOT NULL AUTO_INCREMENT,
+  `dispensing_id`     BIGINT        NOT NULL,
+  `drug_code`         VARCHAR(64)   NOT NULL,
+  `drug_name`         VARCHAR(255)  NOT NULL,
+  `specification`     VARCHAR(255)  DEFAULT NULL,
+  `batch_no`          VARCHAR(64)   DEFAULT NULL,
+  `quantity`          DECIMAL(12,2) NOT NULL,
+  `unit`              VARCHAR(20)   DEFAULT NULL,
+  `unit_price`        DECIMAL(10,2) DEFAULT NULL,
+  `amount`            DECIMAL(10,2) DEFAULT NULL,
+  `dosage`            VARCHAR(100)  DEFAULT NULL,
+  `usage_method`      VARCHAR(100)  DEFAULT NULL,
+  `frequency`         VARCHAR(50)   DEFAULT NULL,
+  `days`              INT           DEFAULT NULL,
+  `remark`            VARCHAR(500)  DEFAULT NULL,
+  `version`           BIGINT        DEFAULT 0,
+  `created_at`        TIMESTAMP     DEFAULT NULL,
+  `updated_at`        TIMESTAMP     DEFAULT NULL,
+  `deleted`           BOOLEAN       NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`)
+);
+
+-- 40. pharmacy_refund_record
+DROP TABLE IF EXISTS `pharmacy_refund_record`;
+CREATE TABLE `pharmacy_refund_record` (
+  `id`                BIGINT        NOT NULL AUTO_INCREMENT,
+  `refund_no`         VARCHAR(32)   NOT NULL,
+  `dispensing_id`     BIGINT        NOT NULL,
+  `patient_id`        BIGINT        DEFAULT NULL,
+  `patient_name`      VARCHAR(64)   DEFAULT NULL,
+  `pharmacist_id`     BIGINT        DEFAULT NULL,
+  `pharmacist_name`   VARCHAR(64)   DEFAULT NULL,
+  `status`            VARCHAR(20)   NOT NULL DEFAULT 'PENDING',
+  `refund_reason`     VARCHAR(500)  DEFAULT NULL,
+  `total_quantity`    DECIMAL(12,2) DEFAULT NULL,
+  `total_amount`      DECIMAL(10,2) DEFAULT NULL,
+  `refunded_at`       TIMESTAMP     DEFAULT NULL,
+  `remark`            VARCHAR(500)  DEFAULT NULL,
+  `version`           BIGINT        DEFAULT 0,
+  `created_at`        TIMESTAMP     DEFAULT NULL,
+  `updated_at`        TIMESTAMP     DEFAULT NULL,
+  `deleted`           BOOLEAN       NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_refund_no` (`refund_no`)
+);
+
+-- 41. pharmacy_refund_item
+DROP TABLE IF EXISTS `pharmacy_refund_item`;
+CREATE TABLE `pharmacy_refund_item` (
+  `id`                BIGINT        NOT NULL AUTO_INCREMENT,
+  `refund_id`         BIGINT        NOT NULL,
+  `dispensing_item_id` BIGINT       DEFAULT NULL,
+  `drug_code`         VARCHAR(64)   NOT NULL,
+  `drug_name`         VARCHAR(255)  NOT NULL,
+  `batch_no`          VARCHAR(64)   DEFAULT NULL,
+  `quantity`          DECIMAL(12,2) NOT NULL,
+  `unit`              VARCHAR(20)   DEFAULT NULL,
+  `unit_price`        DECIMAL(10,2) DEFAULT NULL,
+  `amount`            DECIMAL(10,2) DEFAULT NULL,
+  `remark`            VARCHAR(500)  DEFAULT NULL,
+  `version`           BIGINT        DEFAULT 0,
+  `created_at`        TIMESTAMP     DEFAULT NULL,
+  `updated_at`        TIMESTAMP     DEFAULT NULL,
+  `deleted`           BOOLEAN       NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`)
+);
+
+-- 42. stocktaking
+DROP TABLE IF EXISTS `stocktaking`;
+CREATE TABLE `stocktaking` (
+  `id`              BIGINT        NOT NULL AUTO_INCREMENT,
+  `stocktaking_no`  VARCHAR(32)   NOT NULL,
+  `stocktaking_type` VARCHAR(20)  NOT NULL DEFAULT 'FULL',
+  `status`          VARCHAR(20)   NOT NULL DEFAULT 'DRAFT',
+  `operator_id`     BIGINT        DEFAULT NULL,
+  `operator_name`   VARCHAR(64)   DEFAULT NULL,
+  `start_time`      TIMESTAMP     DEFAULT NULL,
+  `end_time`        TIMESTAMP     DEFAULT NULL,
+  `total_items`     INT           DEFAULT 0,
+  `surplus_items`   INT           DEFAULT 0,
+  `loss_items`      INT           DEFAULT 0,
+  `approver_id`     BIGINT        DEFAULT NULL,
+  `approver_name`   VARCHAR(64)   DEFAULT NULL,
+  `approved_at`     TIMESTAMP     DEFAULT NULL,
+  `reject_reason`   VARCHAR(500)  DEFAULT NULL,
+  `remark`          VARCHAR(500)  DEFAULT NULL,
+  `version`         BIGINT        DEFAULT 0,
+  `created_at`      TIMESTAMP     DEFAULT NULL,
+  `updated_at`      TIMESTAMP     DEFAULT NULL,
+  `deleted`         BOOLEAN       NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_stocktaking_no` (`stocktaking_no`)
+);
+
+-- 43. stocktaking_item
+DROP TABLE IF EXISTS `stocktaking_item`;
+CREATE TABLE `stocktaking_item` (
+  `id`               BIGINT        NOT NULL AUTO_INCREMENT,
+  `stocktaking_id`   BIGINT        NOT NULL,
+  `drug_code`        VARCHAR(64)   NOT NULL,
+  `drug_name`        VARCHAR(255)  DEFAULT NULL,
+  `batch_no`         VARCHAR(64)   DEFAULT NULL,
+  `book_quantity`    DECIMAL(12,2) DEFAULT NULL,
+  `actual_quantity`  DECIMAL(12,2) DEFAULT NULL,
+  `difference`       DECIMAL(12,2) DEFAULT NULL,
+  `difference_type`  VARCHAR(20)   DEFAULT NULL,
+  `unit`             VARCHAR(20)   DEFAULT NULL,
+  `remark`           VARCHAR(500)  DEFAULT NULL,
+  `version`          BIGINT        DEFAULT 0,
+  `created_at`       TIMESTAMP     DEFAULT NULL,
+  `updated_at`       TIMESTAMP     DEFAULT NULL,
+  `deleted`          BOOLEAN       NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`)
+);
+
+-- 44. transfer_order
+DROP TABLE IF EXISTS `transfer_order`;
+CREATE TABLE `transfer_order` (
+  `id`              BIGINT        NOT NULL AUTO_INCREMENT,
+  `transfer_no`     VARCHAR(32)   NOT NULL,
+  `transfer_type`   VARCHAR(20)   NOT NULL,
+  `status`          VARCHAR(20)   NOT NULL DEFAULT 'DRAFT',
+  `source_dept`     VARCHAR(64)   DEFAULT NULL,
+  `target_dept`     VARCHAR(64)   DEFAULT NULL,
+  `applicant_id`    BIGINT        DEFAULT NULL,
+  `applicant_name`  VARCHAR(64)   DEFAULT NULL,
+  `approver_id`     BIGINT        DEFAULT NULL,
+  `approver_name`   VARCHAR(64)   DEFAULT NULL,
+  `approved_at`     TIMESTAMP     DEFAULT NULL,
+  `shipped_at`      TIMESTAMP     DEFAULT NULL,
+  `received_at`     TIMESTAMP     DEFAULT NULL,
+  `total_items`     INT           DEFAULT 0,
+  `total_amount`    DECIMAL(10,2) DEFAULT NULL,
+  `reject_reason`   VARCHAR(500)  DEFAULT NULL,
+  `remark`          VARCHAR(500)  DEFAULT NULL,
+  `version`         BIGINT        DEFAULT 0,
+  `created_at`      TIMESTAMP     DEFAULT NULL,
+  `updated_at`      TIMESTAMP     DEFAULT NULL,
+  `deleted`         BOOLEAN       NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_transfer_no` (`transfer_no`)
+);
+
+-- 45. transfer_item
+DROP TABLE IF EXISTS `transfer_item`;
+CREATE TABLE `transfer_item` (
+  `id`              BIGINT        NOT NULL AUTO_INCREMENT,
+  `transfer_id`     BIGINT        NOT NULL,
+  `drug_code`       VARCHAR(64)   NOT NULL,
+  `drug_name`       VARCHAR(255)  NOT NULL,
+  `specification`   VARCHAR(255)  DEFAULT NULL,
+  `batch_no`        VARCHAR(64)   DEFAULT NULL,
+  `quantity`        DECIMAL(12,2) NOT NULL,
+  `unit`            VARCHAR(20)   DEFAULT NULL,
+  `unit_price`      DECIMAL(10,2) DEFAULT NULL,
+  `amount`          DECIMAL(10,2) DEFAULT NULL,
+  `remark`          VARCHAR(500)  DEFAULT NULL,
+  `version`         BIGINT        DEFAULT 0,
+  `created_at`      TIMESTAMP     DEFAULT NULL,
+  `updated_at`      TIMESTAMP     DEFAULT NULL,
+  `deleted`         BOOLEAN       NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`)
+);
+
+-- 46. offline_registration
+DROP TABLE IF EXISTS `offline_registration`;
+CREATE TABLE `offline_registration` (
+  `id`                BIGINT        NOT NULL AUTO_INCREMENT,
+  `registration_no`   VARCHAR(32)   NOT NULL,
+  `patient_id`        BIGINT        DEFAULT NULL,
+  `patient_name`      VARCHAR(64)   NOT NULL,
+  `patient_phone`     VARCHAR(20)   DEFAULT NULL,
+  `id_card`           VARCHAR(32)   DEFAULT NULL,
+  `doctor_id`         BIGINT        DEFAULT NULL,
+  `doctor_name`       VARCHAR(64)   DEFAULT NULL,
+  `department`        VARCHAR(64)   DEFAULT NULL,
+  `registration_type` VARCHAR(20)   NOT NULL DEFAULT 'OUTPATIENT',
+  `status`            VARCHAR(20)   NOT NULL DEFAULT 'ACTIVE',
+  `registration_fee`  DECIMAL(10,2) DEFAULT NULL,
+  `operator_id`       BIGINT        DEFAULT NULL,
+  `operator_name`     VARCHAR(64)   DEFAULT NULL,
+  `cancel_reason`     VARCHAR(500)  DEFAULT NULL,
+  `cancel_time`       TIMESTAMP     DEFAULT NULL,
+  `remark`            VARCHAR(500)  DEFAULT NULL,
+  `version`           BIGINT        DEFAULT 0,
+  `created_at`        TIMESTAMP     DEFAULT NULL,
+  `updated_at`        TIMESTAMP     DEFAULT NULL,
+  `deleted`           BOOLEAN       NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_offline_reg_no` (`registration_no`)
+);
+
+-- 47. payment_record
+DROP TABLE IF EXISTS `payment_record`;
+CREATE TABLE `payment_record` (
+  `id`                BIGINT        NOT NULL AUTO_INCREMENT,
+  `payment_no`        VARCHAR(32)   NOT NULL,
+  `patient_id`        BIGINT        DEFAULT NULL,
+  `patient_name`      VARCHAR(64)   DEFAULT NULL,
+  `source_id`         BIGINT        DEFAULT NULL,
+  `source_type`       VARCHAR(20)   DEFAULT NULL,
+  `source_no`         VARCHAR(32)   DEFAULT NULL,
+  `total_amount`      DECIMAL(10,2) NOT NULL,
+  `paid_amount`       DECIMAL(10,2) DEFAULT NULL,
+  `refund_amount`     DECIMAL(10,2) DEFAULT 0,
+  `status`            VARCHAR(20)   NOT NULL DEFAULT 'PENDING',
+  `payment_method`    VARCHAR(20)   DEFAULT NULL,
+  `payer_name`        VARCHAR(64)   DEFAULT NULL,
+  `operator_id`       BIGINT        DEFAULT NULL,
+  `operator_name`     VARCHAR(64)   DEFAULT NULL,
+  `paid_at`           TIMESTAMP     DEFAULT NULL,
+  `refunded_at`       TIMESTAMP     DEFAULT NULL,
+  `reconciled_at`     TIMESTAMP     DEFAULT NULL,
+  `refund_reason`     VARCHAR(500)  DEFAULT NULL,
+  `reconcile_batch_no` VARCHAR(32)  DEFAULT NULL,
+  `remark`            VARCHAR(500)  DEFAULT NULL,
+  `version`           BIGINT        DEFAULT 0,
+  `created_at`        TIMESTAMP     DEFAULT NULL,
+  `updated_at`        TIMESTAMP     DEFAULT NULL,
+  `deleted`           BOOLEAN       NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_payment_no` (`payment_no`)
+);
+
+-- 48. payment_item
+DROP TABLE IF EXISTS `payment_item`;
+CREATE TABLE `payment_item` (
+  `id`              BIGINT        NOT NULL AUTO_INCREMENT,
+  `payment_id`      BIGINT        NOT NULL,
+  `item_type`       VARCHAR(20)   NOT NULL,
+  `item_name`       VARCHAR(255)  NOT NULL,
+  `quantity`        DECIMAL(10,2) DEFAULT 1,
+  `unit_price`      DECIMAL(10,2) NOT NULL,
+  `amount`          DECIMAL(10,2) NOT NULL,
+  `remark`          VARCHAR(500)  DEFAULT NULL,
+  `version`         BIGINT        DEFAULT 0,
+  `created_at`      TIMESTAMP     DEFAULT NULL,
+  `updated_at`      TIMESTAMP     DEFAULT NULL,
+  `deleted`         BOOLEAN       NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`)
+);
+
+-- 49. health_record
+DROP TABLE IF EXISTS `health_record`;
+CREATE TABLE `health_record` (
+  `id`              BIGINT        NOT NULL AUTO_INCREMENT,
+  `patient_id`      BIGINT        NOT NULL,
+  `record_type`     VARCHAR(30)   NOT NULL,
+  `record_category` VARCHAR(30)   DEFAULT NULL,
+  `title`           VARCHAR(255)  NOT NULL,
+  `content`         TEXT          DEFAULT NULL,
+  `organization`    VARCHAR(128)  DEFAULT NULL,
+  `department`      VARCHAR(64)   DEFAULT NULL,
+  `doctor_name`     VARCHAR(64)   DEFAULT NULL,
+  `source_id`       BIGINT        DEFAULT NULL,
+  `source_table`    VARCHAR(64)   DEFAULT NULL,
+  `report_data`     TEXT          DEFAULT NULL,
+  `record_date`     DATE          DEFAULT NULL,
+  `remark`          VARCHAR(500)  DEFAULT NULL,
+  `version`         BIGINT        DEFAULT 0,
+  `created_at`      TIMESTAMP     DEFAULT NULL,
+  `updated_at`      TIMESTAMP     DEFAULT NULL,
+  `deleted`         BOOLEAN       NOT NULL DEFAULT FALSE,
+  PRIMARY KEY (`id`)
+);
+
 SET REFERENTIAL_INTEGRITY TRUE;

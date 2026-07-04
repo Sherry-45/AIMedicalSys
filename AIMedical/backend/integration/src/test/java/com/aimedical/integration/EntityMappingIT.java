@@ -10,6 +10,15 @@ import com.aimedical.modules.commonmodule.permission.Post;
 import com.aimedical.modules.commonmodule.permission.Role;
 import com.aimedical.modules.commonmodule.permission.User;
 import com.aimedical.modules.doctor.entity.DoctorEntity;
+import com.aimedical.modules.examination.entity.Examination;
+import com.aimedical.modules.examination.entity.ExaminationItem;
+import com.aimedical.modules.examination.entity.ExaminationStatus;
+import com.aimedical.modules.examination.entity.ExaminationType;
+import com.aimedical.modules.labtest.entity.AbnormalFlag;
+import com.aimedical.modules.labtest.entity.LabTest;
+import com.aimedical.modules.labtest.entity.LabTestItem;
+import com.aimedical.modules.labtest.entity.LabTestStatus;
+import com.aimedical.modules.labtest.entity.SampleType;
 import com.aimedical.modules.patient.entity.Gender;
 import com.aimedical.modules.patient.entity.AllergySeverity;
 import com.aimedical.modules.patient.entity.DiseaseStatus;
@@ -365,6 +374,168 @@ class EntityMappingIT {
         assertEquals("硝苯地平缓释片", found.getDrugName());
         assertEquals("高血压", found.getReason());
         assertEquals(patient.getId(), found.getPatient().getId());
+    }
+
+    // ==================== LabTest ====================
+
+    @Test
+    void labTest_shouldMapAllFields() {
+        LabTest labTest = new LabTest();
+        labTest.setPatientId(1L);
+        labTest.setDoctorId(2L);
+        labTest.setTestType("血常规");
+        labTest.setSampleType(SampleType.BLOOD);
+        labTest.setStatus(LabTestStatus.COMPLETED);
+        labTest.setReportConclusion("正常");
+        labTest.setAiInterpretation("AI 检验解读");
+        labTest.setReportedAt(LocalDateTime.of(2024, 1, 1, 10, 0));
+
+        entityManager.persist(labTest);
+        entityManager.flush();
+
+        LabTest found = entityManager.find(LabTest.class, labTest.getId());
+        assertNotNull(found);
+        assertEquals("血常规", found.getTestType());
+        assertEquals(SampleType.BLOOD, found.getSampleType());
+        assertEquals(LabTestStatus.COMPLETED, found.getStatus());
+        assertEquals("正常", found.getReportConclusion());
+        assertEquals("AI 检验解读", found.getAiInterpretation());
+    }
+
+    @Test
+    void labTest_shouldDefaultToPendingStatus() {
+        LabTest labTest = new LabTest();
+        labTest.setPatientId(1L);
+        labTest.setDoctorId(2L);
+        labTest.setTestType("尿常规");
+        labTest.setSampleType(SampleType.URINE);
+
+        entityManager.persist(labTest);
+        entityManager.flush();
+
+        LabTest found = entityManager.find(LabTest.class, labTest.getId());
+        assertEquals(LabTestStatus.PENDING, found.getStatus());
+    }
+
+    // ==================== LabTestItem ====================
+
+    @Test
+    void labTestItem_shouldMapAllFields() {
+        LabTest labTest = new LabTest();
+        labTest.setPatientId(1L);
+        labTest.setDoctorId(2L);
+        labTest.setTestType("血常规");
+        labTest.setSampleType(SampleType.BLOOD);
+        labTest.setStatus(LabTestStatus.COMPLETED);
+        entityManager.persist(labTest);
+        entityManager.flush();
+
+        LabTestItem item = new LabTestItem();
+        item.setLabTestId(labTest.getId());
+        item.setItemName("白细胞计数");
+        item.setResult("6.5");
+        item.setUnit("10^9/L");
+        item.setReferenceRange("4-10");
+        item.setAbnormalFlag(AbnormalFlag.NORMAL);
+
+        entityManager.persist(item);
+        entityManager.flush();
+
+        LabTestItem found = entityManager.find(LabTestItem.class, item.getId());
+        assertNotNull(found);
+        assertEquals("白细胞计数", found.getItemName());
+        assertEquals("6.5", found.getResult());
+        assertEquals("10^9/L", found.getUnit());
+        assertEquals("4-10", found.getReferenceRange());
+        assertEquals(AbnormalFlag.NORMAL, found.getAbnormalFlag());
+        assertEquals(labTest.getId(), found.getLabTestId());
+    }
+
+    // ==================== Examination ====================
+
+    @Test
+    void examination_shouldMapAllFields() {
+        Examination exam = new Examination();
+        exam.setPatientId(1L);
+        exam.setDoctorId(2L);
+        exam.setExaminationType(ExaminationType.CT);
+        exam.setBodyPart("胸部");
+        exam.setClinicalDiagnosis("咳嗽");
+        exam.setStatus(ExaminationStatus.COMPLETED);
+        exam.setEmergencyFlag(true);
+        exam.setImageUrl("http://example.com/img.dcm");
+        exam.setImageType("DICOM");
+        exam.setImpression("未见异常");
+        exam.setConclusion("正常");
+        exam.setAiInterpretation("AI 检查解读");
+        exam.setAiConfidence(0.95);
+        exam.setImageAnalysisResult("AI 影像分析结果");
+        exam.setImageConfidence(0.88);
+        exam.setReportedAt(LocalDateTime.of(2024, 1, 1, 10, 0));
+
+        entityManager.persist(exam);
+        entityManager.flush();
+
+        Examination found = entityManager.find(Examination.class, exam.getId());
+        assertNotNull(found);
+        assertEquals(ExaminationType.CT, found.getExaminationType());
+        assertEquals("胸部", found.getBodyPart());
+        assertEquals(ExaminationStatus.COMPLETED, found.getStatus());
+        assertTrue(found.getEmergencyFlag());
+        assertEquals("http://example.com/img.dcm", found.getImageUrl());
+        assertEquals("DICOM", found.getImageType());
+        assertEquals("未见异常", found.getImpression());
+        assertEquals("正常", found.getConclusion());
+        assertEquals("AI 检查解读", found.getAiInterpretation());
+        assertEquals(0.95, found.getAiConfidence());
+        assertEquals("AI 影像分析结果", found.getImageAnalysisResult());
+        assertEquals(0.88, found.getImageConfidence());
+    }
+
+    @Test
+    void examination_shouldDefaultToPendingStatusAndEmergencyFlagFalse() {
+        Examination exam = new Examination();
+        exam.setPatientId(1L);
+        exam.setDoctorId(2L);
+        exam.setExaminationType(ExaminationType.MRI);
+
+        entityManager.persist(exam);
+        entityManager.flush();
+
+        Examination found = entityManager.find(Examination.class, exam.getId());
+        assertEquals(ExaminationStatus.PENDING, found.getStatus());
+        assertFalse(found.getEmergencyFlag());
+    }
+
+    // ==================== ExaminationItem ====================
+
+    @Test
+    void examinationItem_shouldMapAllFields() {
+        Examination exam = new Examination();
+        exam.setPatientId(1L);
+        exam.setDoctorId(2L);
+        exam.setExaminationType(ExaminationType.CT);
+        exam.setStatus(ExaminationStatus.COMPLETED);
+        entityManager.persist(exam);
+        entityManager.flush();
+
+        ExaminationItem item = new ExaminationItem();
+        item.setExaminationId(exam.getId());
+        item.setItemName("肺窗");
+        item.setFinding("结节");
+        item.setMeasurement("5mm");
+        item.setAbnormalFlag(true);
+
+        entityManager.persist(item);
+        entityManager.flush();
+
+        ExaminationItem found = entityManager.find(ExaminationItem.class, item.getId());
+        assertNotNull(found);
+        assertEquals("肺窗", found.getItemName());
+        assertEquals("结节", found.getFinding());
+        assertEquals("5mm", found.getMeasurement());
+        assertTrue(found.getAbnormalFlag());
+        assertEquals(exam.getId(), found.getExaminationId());
     }
 
     // ==================== Helpers ====================

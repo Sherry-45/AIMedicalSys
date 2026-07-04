@@ -5,7 +5,15 @@ import { useMenuStore } from '../stores/menu'
 /**
  * 路由配置
  *
- * 定义管理员端应用的路由结构和导航守卫。
+ * <p>定义管理员端应用的路由结构和导航守卫。
+ *
+ * <p>Phase 4 新增静态业务路由（管理员端只读/管理视角，对应医生端同名页面）：
+ * - 药房工作台：/pharmacy/dispense、/pharmacy/refund、/pharmacy/drugs
+ * - 药库管理：/inventory/stock、/inventory/stocktaking、/inventory/transfer
+ * - 线下窗口：/window/registration、/window/charging、/window/payments
+ * - 健康档案：/health-record/query、/health-record/trend
+ * - 数据查看：/patients（患者管理）、/prescriptions（处方查询）
+ * - 系统管理：/system/users、/system/roles、/system/menus
  */
 const routes: RouteRecordRaw[] = [
   {
@@ -28,6 +36,128 @@ const routes: RouteRecordRaw[] = [
         path: '/dashboard',
         name: 'Dashboard',
         component: () => import('../views/Dashboard.vue'),
+        meta: { requiresAuth: true },
+      },
+      // ---- 数据查看 ----
+      {
+        path: '/patients',
+        name: 'PatientList',
+        component: () => import('../views/PatientList.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/prescriptions',
+        name: 'PrescriptionList',
+        component: () => import('../views/PrescriptionList.vue'),
+        meta: { requiresAuth: true },
+      },
+      // ---- 药房工作台 ----
+      {
+        path: '/pharmacy/dispense',
+        name: 'PharmacyDispense',
+        component: () => import('../views/pharmacy/Dispense.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/pharmacy/refund',
+        name: 'PharmacyRefund',
+        component: () => import('../views/pharmacy/Refund.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/pharmacy/drugs',
+        name: 'PharmacyDrugCatalog',
+        component: () => import('../views/pharmacy/DrugCatalog.vue'),
+        meta: { requiresAuth: true },
+      },
+      // ---- 药库管理 ----
+      {
+        path: '/inventory/stock',
+        name: 'InventoryStock',
+        component: () => import('../views/inventory/StockList.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/inventory/stocktaking',
+        name: 'InventoryStocktaking',
+        component: () => import('../views/inventory/Stocktaking.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/inventory/transfer',
+        name: 'InventoryTransfer',
+        component: () => import('../views/inventory/Transfer.vue'),
+        meta: { requiresAuth: true },
+      },
+      // ---- 线下窗口 ----
+      {
+        path: '/window/registration',
+        name: 'WindowRegistration',
+        component: () => import('../views/window/Registration.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/window/charging',
+        name: 'WindowCharging',
+        component: () => import('../views/window/Charging.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/window/payments',
+        name: 'WindowPayments',
+        component: () => import('../views/window/PaymentRecords.vue'),
+        meta: { requiresAuth: true },
+      },
+      // ---- 健康档案 ----
+      {
+        path: '/health-record/query',
+        name: 'HealthRecordQuery',
+        component: () => import('../views/health-record/HealthRecordQuery.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/health-record/trend',
+        name: 'HealthRecordTrend',
+        component: () => import('../views/health-record/HealthTrend.vue'),
+        meta: { requiresAuth: true },
+      },
+      // ---- 系统管理 ----
+      {
+        path: '/system/users',
+        name: 'UserManagement',
+        component: () => import('../views/system/UserManagement.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/system/roles',
+        name: 'RoleManagement',
+        component: () => import('../views/system/RoleManagement.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/system/menus',
+        name: 'MenuManagement',
+        component: () => import('../views/system/MenuManagement.vue'),
+        meta: { requiresAuth: true },
+      },
+      // ---- 硬件接入 (Device) ----
+      // 静态路径须排在动态参数路径之前
+      {
+        path: '/devices',
+        name: 'DeviceList',
+        component: () => import('../views/device/DeviceList.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/devices/:id',
+        name: 'DeviceDetail',
+        component: () => import('../views/device/DeviceDetail.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/devices/:id/messages',
+        name: 'DeviceMessageList',
+        component: () => import('../views/device/DeviceMessageList.vue'),
         meta: { requiresAuth: true },
       },
     ],

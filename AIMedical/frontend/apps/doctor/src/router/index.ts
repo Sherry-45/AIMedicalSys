@@ -38,11 +38,30 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../views/Dashboard.vue'),
         meta: { requiresAuth: true },
       },
+      {
+        path: '/profile',
+        name: 'DoctorProfile',
+        component: () => import('../views/DoctorProfile.vue'),
+        meta: { requiresAuth: true },
+      },
       // ---- 包A：诊疗闭环 ----
       {
         path: '/queue',
         name: 'ConsultationQueue',
         component: () => import('../views/ConsultationQueue.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/registration',
+        name: 'RegistrationManagement',
+        component: () => import('../views/Registration.vue'),
+        meta: { requiresAuth: true },
+      },
+      // 字面量 /patient 必须在动态 /patient/:patientId 之前
+      {
+        path: '/patient',
+        name: 'PatientList',
+        component: () => import('../views/PatientList.vue'),
         meta: { requiresAuth: true },
       },
       {
@@ -102,6 +121,13 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../views/PrescriptionDetail.vue'),
         meta: { requiresAuth: true },
       },
+      // ---- 医嘱管理 ----
+      {
+        path: '/medical-orders',
+        name: 'MedicalOrderList',
+        component: () => import('../views/MedicalOrderList.vue'),
+        meta: { requiresAuth: true },
+      },
       // ---- 包B：AI 入口 ----
       {
         path: '/ai/diagnosis',
@@ -131,6 +157,145 @@ const routes: RouteRecordRaw[] = [
         path: '/ai/medical-record-gen',
         name: 'AiMedicalRecordGen',
         component: () => import('../views/ai/AiMedicalRecordGen.vue'),
+        meta: { requiresAuth: true },
+      },
+      // ---- Phase 4：药房工作台 ----
+      {
+        path: '/pharmacy/dispense',
+        name: 'PharmacyDispense',
+        component: () => import('../views/pharmacy/Dispense.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/pharmacy/refund',
+        name: 'PharmacyRefund',
+        component: () => import('../views/pharmacy/Refund.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/pharmacy/drugs',
+        name: 'PharmacyDrugCatalog',
+        component: () => import('../views/pharmacy/DrugCatalog.vue'),
+        meta: { requiresAuth: true },
+      },
+      // ---- Phase 4：药库管理 ----
+      {
+        path: '/inventory/stock',
+        name: 'InventoryStock',
+        component: () => import('../views/inventory/StockList.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/inventory/stocktaking',
+        name: 'InventoryStocktaking',
+        component: () => import('../views/inventory/Stocktaking.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/inventory/transfer',
+        name: 'InventoryTransfer',
+        component: () => import('../views/inventory/Transfer.vue'),
+        meta: { requiresAuth: true },
+      },
+      // ---- Phase 4：线下窗口 ----
+      {
+        path: '/window/registration',
+        name: 'WindowRegistration',
+        component: () => import('../views/window/Registration.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/window/charging',
+        name: 'WindowCharging',
+        component: () => import('../views/window/Charging.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/window/payments',
+        name: 'WindowPayments',
+        component: () => import('../views/window/PaymentRecords.vue'),
+        meta: { requiresAuth: true },
+      },
+      // ---- Phase 4：健康档案 ----
+      {
+        path: '/health-record/query',
+        name: 'HealthRecordQuery',
+        component: () => import('../views/health-record/HealthRecordQuery.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/health-record/trend',
+        name: 'HealthRecordTrend',
+        component: () => import('../views/health-record/HealthTrend.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/ai/discussion-conclusion',
+        name: 'AiDiscussionConclusion',
+        component: () => import('../views/ai/AiDiscussionConclusion.vue'),
+        meta: { requiresAuth: true },
+      },
+      // ---- 检查域 (Examination) ----
+      // 静态路径须排在动态参数路径之前
+      {
+        path: '/examinations',
+        name: 'ExaminationList',
+        component: () => import('../views/examination/ExaminationList.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/examinations/report',
+        name: 'ExaminationReport',
+        component: () => import('../views/examination/ExaminationReport.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/examinations/image',
+        name: 'ExaminationImage',
+        component: () => import('../views/examination/ExaminationImage.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/examinations/order-suggest',
+        name: 'ExaminationOrderSuggest',
+        component: () => import('../views/examination/ExaminationOrderSuggest.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/examinations/:id',
+        name: 'ExaminationDetail',
+        component: () => import('../views/examination/ExaminationDetail.vue'),
+        meta: { requiresAuth: true },
+      },
+      // ---- 检验域 (LabTest) ----
+      {
+        path: '/lab-tests',
+        name: 'LabTestList',
+        component: () => import('../views/lab-test/LabTestList.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/lab-tests/report',
+        name: 'LabTestReport',
+        component: () => import('../views/lab-test/LabTestReport.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/lab-tests/trend',
+        name: 'LabTestTrend',
+        component: () => import('../views/lab-test/LabTestTrend.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/lab-tests/order-suggest',
+        name: 'LabTestOrderSuggest',
+        component: () => import('../views/lab-test/LabTestOrderSuggest.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/lab-tests/:id',
+        name: 'LabTestDetail',
+        component: () => import('../views/lab-test/LabTestDetail.vue'),
         meta: { requiresAuth: true },
       },
     ],

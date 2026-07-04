@@ -46,21 +46,29 @@ const sidebarStyle = computed(() => ({
 <style scoped>
 .layout-container {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .sidebar {
-  width: 200px;
+  width: 220px;
+  height: 100vh;
+  flex-shrink: 0;
+  overflow: hidden;
 }
 
 .main-container {
   flex: 1;
   display: flex;
   flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  min-width: 0;
 }
 
 .header {
   height: 60px;
+  flex-shrink: 0;
   background: white;
   border-bottom: 1px solid #e6e6e6;
 }
@@ -69,5 +77,6 @@ const sidebarStyle = computed(() => ({
   flex: 1;
   padding: 20px;
   background: #f5f5f5;
+  overflow-y: auto;
 }
 </style>

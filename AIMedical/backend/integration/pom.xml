@@ -59,6 +59,24 @@
             <artifactId>common-module-impl</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.aimedical</groupId>
+            <artifactId>examination</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.aimedical</groupId>
+            <artifactId>lab-test</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.aimedical</groupId>
+            <artifactId>device</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
 
         <!-- 显式声明 application 模块的传递性编译依赖（test scope 非传递性） -->
         <dependency>

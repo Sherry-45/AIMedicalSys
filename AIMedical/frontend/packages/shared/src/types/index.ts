@@ -15,8 +15,8 @@ export interface ApiResult<T = unknown> {
 
 export interface PageResponse<T> {
   content: T[]
-  totalElements: number
-  totalPages: number
+  total_elements: number
+  total_pages: number
   page: number
   size: number
 }
@@ -397,6 +397,26 @@ export interface AiMedicalRecordGenResponse {
   treatment_plan: string
 }
 
+/** AI 讨论结论生成-发言记录。对应后端 AiDiscussionConclusionRequest.Transcript。 */
+export interface AiDiscussionTranscript {
+  speaker_role: string
+  speaker_name: string
+  timestamp: string
+  content: string
+}
+
+/** AI 讨论结论生成请求。对应后端 AiDiscussionConclusionRequest。 */
+export interface AiDiscussionConclusionRequest {
+  transcripts: AiDiscussionTranscript[]
+}
+
+/** AI 讨论结论生成响应。对应后端 AiDiscussionConclusionResponse。 */
+export interface AiDiscussionConclusionResponse {
+  conclusion_summary: string
+  key_points: string
+  action_items: string
+}
+
 // ==================== Patient Profile ====================
 
 export interface PatientProfile {
@@ -682,4 +702,405 @@ export interface TriageHistoryRecord {
   rule_set_id: string
   matched_rules: string
   created_at: string
+}
+
+// ===========================================================================
+// Phase 4 业务模块类型 re-export
+//
+// <p>从子模块重新导出药房 / 药库 / 窗口 / 健康档案的类型，使应用层可通过
+// `@aimedical/shared` 统一导入。各子模块通过 `import type { PageResponse } from './index'`
+// 反向依赖 index.ts 中的基础类型（纯类型导入，编译后被擦除，无运行时循环依赖）。
+// ===========================================================================
+
+export * from './pharmacy'
+export * from './inventory'
+export * from './window'
+export * from './health-record'
+export * from './registration'
+export * from './admin'
+
+// ============ 检查域 (Examination) ============
+
+export type ExaminationType =
+  | 'CT'
+  | 'MRI'
+  | 'X_RAY'
+  | 'ULTRASOUND'
+  | 'MAMMOGRAPHY'
+  | 'ENDOSCOPY'
+  | 'OTHER'
+
+export type ExaminationStatus =
+  | 'PENDING'
+  | 'SCHEDULED'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'CANCELLED'
+
+export interface ExaminationItemResponse {
+  id: number | null
+  examination_id: number
+  item_name: string
+  finding: string | null
+  measurement: string | null
+  abnormal_flag: boolean
+}
+
+export interface ExaminationItemRequest {
+  item_name: string
+  finding?: string
+  measurement?: string
+  abnormal_flag?: boolean
+}
+
+export interface ExaminationCreateRequest {
+  patient_id: number
+  doctor_id: number
+  examination_type: ExaminationType
+  body_part?: string
+  clinical_diagnosis?: string
+  scheduled_at?: string
+  emergency_flag?: boolean
+  image_url?: string
+  image_type?: string
+  items?: ExaminationItemRequest[]
+}
+
+export interface ExaminationCompleteRequest {
+  impression?: string
+  conclusion?: string
+  items: ExaminationItemRequest[]
+}
+
+export interface ExaminationResponse {
+  id: number
+  patient_id: number
+  doctor_id: number
+  examination_type: ExaminationType
+  body_part: string | null
+  clinical_diagnosis: string | null
+  scheduled_at: string | null
+  status: ExaminationStatus
+  emergency_flag: boolean
+  image_url: string | null
+  image_type: string | null
+  impression: string | null
+  conclusion: string | null
+  ai_interpretation: string | null
+  ai_confidence: number | null
+  image_analysis_result: string | null
+  image_confidence: number | null
+  reported_at: string | null
+  created_at: string
+  updated_at: string
+  items: ExaminationItemResponse[]
+}
+
+export interface ExaminationOrderItem {
+  task_id: number
+  priority: string
+  recommended_time: string
+  reason: string
+}
+
+export interface ExecutionOrderResponse {
+  execution_order: ExaminationOrderItem[]
+  summary: string
+  disclaimer_required: boolean
+  degraded: boolean
+}
+
+// ============ 检验域 (LabTest) ============
+
+export type SampleType =
+  | 'BLOOD'
+  | 'SERUM'
+  | 'PLASMA'
+  | 'URINE'
+  | 'STOOL'
+  | 'SPUTUM'
+  | 'OTHER'
+
+export type LabTestStatus =
+  | 'PENDING'
+  | 'COLLECTED'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'CANCELLED'
+
+export type AbnormalFlag =
+  | 'NORMAL'
+  | 'LOW'
+  | 'HIGH'
+  | 'CRITICAL_LOW'
+  | 'CRITICAL_HIGH'
+
+export interface LabTestItemResponse {
+  id: number | null
+  lab_test_id: number
+  item_name: string
+  result: string | null
+  unit: string | null
+  reference_range: string | null
+  abnormal_flag: AbnormalFlag
+}
+
+export interface LabTestItemRequest {
+  item_name: string
+  result?: string
+  unit?: string
+  reference_range?: string
+  abnormal_flag?: AbnormalFlag
+}
+
+export interface LabTestCreateRequest {
+  patient_id: number
+  doctor_id: number
+  test_type: string
+  sample_type: SampleType
+}
+
+export interface LabTestCompleteRequest {
+  report_conclusion?: string
+  items: LabTestItemRequest[]
+}
+
+export interface LabTestResponse {
+  id: number
+  patient_id: number
+  doctor_id: number
+  test_type: string
+  sample_type: SampleType
+  collected_at: string | null
+  status: LabTestStatus
+  report_conclusion: string | null
+  ai_interpretation: string | null
+  reported_at: string | null
+  created_at: string
+  updated_at: string
+  items: LabTestItemResponse[]
+}
+
+export interface LabTestTrendPoint {
+  test_date: string
+  result: string
+  abnormal_flag: AbnormalFlag
+}
+
+export interface LabTestTrendResponse {
+  item_name: string
+  unit: string
+  points: LabTestTrendPoint[]
+}
+
+// ============ 硬件接入 (Device) ============
+
+export type DeviceType =
+  | 'IMAGING'
+  | 'LAB_ANALYZER'
+  | 'MONITOR'
+  | 'OTHER'
+
+export type DeviceProtocol =
+  | 'HL7'
+  | 'DICOM'
+  | 'ASTM'
+
+export type DeviceStatus =
+  | 'ONLINE'
+  | 'OFFLINE'
+  | 'ERROR'
+  | 'MAINTENANCE'
+
+export interface DeviceCreateRequest {
+  device_code: string
+  device_name: string
+  device_type: DeviceType
+  protocol: DeviceProtocol
+  manufacturer?: string
+  model?: string
+  location?: string
+  connection_config?: string
+}
+
+export interface DeviceUpdateRequest {
+  device_name?: string
+  device_type?: DeviceType
+  protocol?: DeviceProtocol
+  manufacturer?: string
+  model?: string
+  location?: string
+  connection_config?: string
+}
+
+export interface DeviceResponse {
+  id: number
+  device_code: string
+  device_name: string
+  device_type: DeviceType
+  protocol: DeviceProtocol
+  status: DeviceStatus
+  manufacturer: string | null
+  model: string | null
+  location: string | null
+  connection_config: string | null
+  last_heartbeat_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface DeviceMessageResponse {
+  id: number
+  device_id: number
+  message_type: string
+  protocol: DeviceProtocol
+  raw_content: string
+  parsed_content: string | null
+  processed: boolean
+  received_at: string
+  created_at: string
+  updated_at: string
+}
+
+// ============ 医嘱域 (MedicalOrder) ============
+
+/** 医嘱类型：药品/检查/检验。对应后端 OrderType。 */
+export type MedicalOrderType = 'DRUG' | 'EXAMINATION' | 'LAB_TEST'
+
+/** 医嘱状态机：草稿/已提交/已收费/已发药/已完成/已取消。对应后端 OrderStatus。 */
+export type MedicalOrderStatus =
+  | 'DRAFT'
+  | 'SUBMITTED'
+  | 'CHARGED'
+  | 'DISPENSED'
+  | 'COMPLETED'
+  | 'CANCELLED'
+
+/** 医嘱明细项类型：药品/检查/检验。对应后端 ItemType。 */
+export type MedicalOrderItemType = 'DRUG' | 'EXAMINATION' | 'LAB_TEST'
+
+/** 医嘱明细项 DTO。对应后端 MedicalOrderItemDTO。 */
+export interface MedicalOrderItemDTO {
+  id?: number | null
+  order_id?: number | null
+  item_type: MedicalOrderItemType
+  item_code: string
+  item_name: string
+  specification?: string | null
+  quantity: number
+  unit?: string | null
+  unit_price: number
+  amount?: number | null
+  dosage?: string | null
+  usage_method?: string | null
+  frequency?: string | null
+  days?: number | null
+  remark?: string | null
+}
+
+/** 创建医嘱请求。对应后端 MedicalOrderCreateRequest。 */
+export interface MedicalOrderCreateRequest {
+  patient_id: number
+  doctor_id: number
+  registration_id: number
+  order_type: MedicalOrderType
+  diagnosis?: string | null
+  is_urgent?: boolean | null
+  remark?: string | null
+  items: MedicalOrderItemDTO[]
+}
+
+/** 医嘱响应 DTO。对应后端 MedicalOrderDTO。 */
+export interface MedicalOrderDTO {
+  id: number
+  patient_id: number
+  doctor_id: number
+  registration_id: number
+  order_no: string
+  order_type: MedicalOrderType
+  order_status: MedicalOrderStatus
+  diagnosis: string | null
+  total_amount: number | null
+  is_urgent: boolean | null
+  remark: string | null
+  items: MedicalOrderItemDTO[]
+}
+
+/** 预收费订单项 DTO。对应后端 ChargePreOrderItemDTO。 */
+export interface ChargePreOrderItemDTO {
+  id?: number | null
+  charge_pre_order_id?: number | null
+  charge_item_type: string
+  charge_item_code: string
+  charge_item_name: string
+  quantity: number
+  unit_price: number
+  amount: number | null
+}
+
+/** 预收费订单 DTO。对应后端 ChargePreOrderDTO。 */
+export interface ChargePreOrderDTO {
+  id: number
+  order_id: number
+  patient_id: number
+  charge_no: string
+  total_amount: number | null
+  charge_status: string
+  remark: string | null
+  items: ChargePreOrderItemDTO[]
+}
+
+/** 发药合同明细项。对应后端 MedicationOrderDTO.MedicationOrderItemDTO。 */
+export interface MedicationOrderItemDTO {
+  item_code: string
+  item_name: string
+  specification: string | null
+  quantity: number
+  unit: string | null
+  dosage: string | null
+  usage_method: string | null
+  frequency: string | null
+  days: number | null
+}
+
+/** 发药合同。对应后端 MedicationOrderDTO。 */
+export interface MedicationOrderDTO {
+  order_no: string
+  patient_id: number
+  patient_name: string
+  doctor_id: number
+  doctor_name: string
+  items: MedicationOrderItemDTO[]
+  diagnosis: string | null
+  is_urgent: boolean | null
+}
+
+// ============ 医生档案 (Doctor Profile) ============
+
+/** 医生档案 DTO。对应后端 DoctorDto。 */
+export interface DoctorDto {
+  id: number
+  user_id: number
+  real_name: string
+  gender: string | null
+  title: string | null
+  department: string | null
+  specialty: string | null
+  introduction: string | null
+  license_no: string | null
+  practice_years: number | null
+  consultation_fee: number | null
+  remark: string | null
+}
+
+/** 医生档案更新请求。对应后端 DoctorProfileUpdateRequest。 */
+export interface DoctorProfileUpdateRequest {
+  gender?: string | null
+  title?: string | null
+  department?: string | null
+  specialty?: string | null
+  introduction?: string | null
+  practice_years?: number | null
+  consultation_fee?: number | null
+  remark?: string | null
 }

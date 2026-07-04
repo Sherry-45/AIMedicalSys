@@ -177,7 +177,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { registrationApi, type RegistrationRecord, type AppointmentSlot, type BusinessError } from '@aimedical/shared'
+import { patientRegistrationApi, type RegistrationRecord, type AppointmentSlot, type BusinessError } from '@aimedical/shared'
 
 const router = useRouter()
 const activeTab = ref('register')
@@ -227,7 +227,7 @@ function onDeptChange(val: number | null) {
 async function loadDoctors(deptId: number) {
   if (doctors.value.length > 0) return // already loaded
   try {
-    const result = await registrationApi.getDoctors(deptId)
+    const result = await patientRegistrationApi.getDoctors(deptId)
     if (!(result as BusinessError).isBusinessError) {
       const raw = result as { doctor_id: number; doctor_name: string; available_slot_count: number; score: number }[]
       doctors.value = raw
@@ -266,7 +266,7 @@ async function submitOutpatient() {
   }
   submitting.value = true
   try {
-    const result = await registrationApi.create({
+    const result = await patientRegistrationApi.create({
       registration_type: 'OUTPATIENT',
       doctor_id: outpatient.doctorId ?? undefined,
       doctor_name: outpatient.doctorName,
@@ -290,7 +290,7 @@ async function submitOutpatient() {
 
 onMounted(async () => {
   try {
-    const result = await registrationApi.getDepartments()
+    const result = await patientRegistrationApi.getDepartments()
     if (!(result as BusinessError).isBusinessError) {
       depts.value = result as { department_id: number; department_name: string; score: number }[]
     } else {
@@ -314,7 +314,7 @@ onMounted(async () => {
     ]
   }
   try {
-    const result = await registrationApi.list()
+    const result = await patientRegistrationApi.list()
     if (!(result as BusinessError).isBusinessError) {
       // result handled by sessionRegistrations
     }
@@ -335,7 +335,7 @@ function dismissCancel() {
 
 async function doCancel(r: RegistrationRecord) {
   cancellingActive.value = true
-  const result = await registrationApi.cancel(r.id)
+  const result = await patientRegistrationApi.cancel(r.id)
   if (!(result as BusinessError).isBusinessError) {
     const data = result as { success: boolean; message: string; refund_amount?: number; over_window?: boolean }
     if (data.over_window) {
@@ -355,7 +355,7 @@ async function doCancel(r: RegistrationRecord) {
 
 onMounted(async () => {
   try {
-    const result = await registrationApi.list()
+    const result = await patientRegistrationApi.list()
     if (!(result as BusinessError).isBusinessError) {
       const raw = result as { id: number; registration_type: string; doctor_name?: string; department_name?: string; exam_item_name?: string; time_slot: string; status: string; can_cancel: boolean; created_at: string }[]
       sessionRegistrations.value = raw.map(r => ({

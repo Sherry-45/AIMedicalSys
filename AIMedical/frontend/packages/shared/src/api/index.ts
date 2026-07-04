@@ -1,9 +1,9 @@
 import type { BusinessError, LoginRequest, LoginResponse, UserInfo, MenuItem, TokenResponse, TokenRefreshResponse, RegisterRequest, CurrentUserResponse, TriageRequest, TriageResponse, TriageDepartment, TriageDoctor, ConsultRequest, ConsultResponse, AppointmentSlot, RegistrationRequest, RegistrationRecord, CancelResult, ExamCategory, ExamItem, ReportRecord, MedicalRecordRecord, PrescriptionRecord, PaymentRecord, TriageHistoryRecord } from '../types'
-import { apiGet, apiPost, apiPut, apiDelete } from './client'
+import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from './client'
 import { getAccessToken, setTokens, clearTokens, getRefreshToken } from '../utils'
 
 // 重新导出 axios 客户端与底层请求函数（供外部直接使用）
-export { apiClient, apiGet, apiPost, apiPut, apiDelete, setAuthToken, clearAuthToken } from './client'
+export { apiClient, apiGet, apiPost, apiPut, apiDelete, apiPatch, setAuthToken, clearAuthToken } from './client'
 
 // ==================== Auth API (Patient-centric, fork) ====================
 
@@ -179,19 +179,77 @@ export const authApi = {
 
 /**
  * 菜单相关API
+ *
+ * <p>对应后端 /api/menu/* 系列接口。
+ * - /tree 与 /all：任意已认证 / ADMIN
+ * - POST / PATCH / DELETE：仅 ADMIN
  */
+export interface MenuCreateRequest {
+  name: string
+  permission: string
+  parent_id?: number | null
+  path?: string
+  component?: string
+  icon?: string
+  sort?: number
+  visible: boolean
+}
+
+export interface MenuUpdateRequest {
+  name?: string
+  permission?: string
+  parent_id?: number | null
+  path?: string
+  component?: string
+  icon?: string
+  sort?: number
+  visible?: boolean
+}
+
 export const menuApi = {
+  /** 获取当前用户菜单树。GET /api/menu/tree */
   tree: (): Promise<MenuItem[] | BusinessError> => {
     return apiGet<MenuItem[]>('/menu/tree')
   },
 
+  /** 获取所有菜单（扁平列表，可能含 children 字段）。GET /api/menu/all */
   all: (): Promise<MenuItem[] | BusinessError> => {
     return apiGet<MenuItem[]>('/menu/all')
+  },
+
+  /** 获取菜单详情。GET /api/menu/{id} */
+  get: (id: number): Promise<MenuItem | BusinessError> => {
+    return apiGet<MenuItem>(`/menu/${id}`)
+  },
+
+  /** 创建菜单。POST /api/menu */
+  create: (request: MenuCreateRequest): Promise<MenuItem | BusinessError> => {
+    return apiPost<MenuItem>('/menu', request)
+  },
+
+  /** 更新菜单。PATCH /api/menu/{id} */
+  update: (id: number, request: MenuUpdateRequest): Promise<MenuItem | BusinessError> => {
+    return apiPatch<MenuItem>(`/menu/${id}`, request)
+  },
+
+  /** 删除菜单。DELETE /api/menu/{id} */
+  delete: (id: number): Promise<void | BusinessError> => {
+    return apiDelete<void>(`/menu/${id}`)
   },
 }
 
 // 医生端 API
 export { doctorApi } from './doctor'
+
+// Phase 4 业务模块 API
+export { pharmacyApi } from './pharmacy'
+export { inventoryApi } from './inventory'
+export { windowApi } from './window'
+export { healthRecordApi } from './health-record'
+export { registrationApi } from './registration'
+
+// 管理员端 API（用户/角色/岗位管理 + 硬件接入设备管理）
+export { userManagementApi, roleManagementApi, postManagementApi, adminApi } from './admin'
 
 /**
  * AI 智能导诊 API
@@ -240,7 +298,7 @@ export const appointmentApi = {
 /**
  * 线上挂号 API
  */
-export const registrationApi = {
+export const patientRegistrationApi = {
   getDepartments: (): Promise<TriageDepartment[] | BusinessError> => {
     return apiGet<TriageDepartment[]>('/patient/registration/departments')
   },

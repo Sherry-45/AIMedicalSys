@@ -82,6 +82,7 @@ public class SecurityConfigPhase1 {
                     .requestMatchers("/api/menu/**").authenticated()
                     .requestMatchers("/api/patient/register").permitAll()
                     .requestMatchers("/api/patient/login").permitAll()
+                    .requestMatchers("/api/patient/health-records/**").hasAnyRole("ADMIN", "PATIENT", "DOCTOR")
                     .requestMatchers("/api/patient/**").hasRole("PATIENT")
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
                     .requestMatchers("/api/doctor/**").hasRole("DOCTOR")

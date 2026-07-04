@@ -63,6 +63,36 @@
             <artifactId>registration</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.aimedical</groupId>
+            <artifactId>pharmacy</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aimedical</groupId>
+            <artifactId>inventory</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aimedical</groupId>
+            <artifactId>window</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aimedical</groupId>
+            <artifactId>examination</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aimedical</groupId>
+            <artifactId>lab-test</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.aimedical</groupId>
+            <artifactId>device</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- Spring Boot starters -->
         <dependency>
@@ -145,6 +175,12 @@
                         <ignoredUnusedDeclaredDependency>com.aimedical:admin</ignoredUnusedDeclaredDependency>
                         <ignoredUnusedDeclaredDependency>com.aimedical:medical-order</ignoredUnusedDeclaredDependency>
                         <ignoredUnusedDeclaredDependency>com.aimedical:registration</ignoredUnusedDeclaredDependency>
+                        <ignoredUnusedDeclaredDependency>com.aimedical:pharmacy</ignoredUnusedDeclaredDependency>
+                        <ignoredUnusedDeclaredDependency>com.aimedical:inventory</ignoredUnusedDeclaredDependency>
+                        <ignoredUnusedDeclaredDependency>com.aimedical:window</ignoredUnusedDeclaredDependency>
+                        <ignoredUnusedDeclaredDependency>com.aimedical:examination</ignoredUnusedDeclaredDependency>
+                        <ignoredUnusedDeclaredDependency>com.aimedical:lab-test</ignoredUnusedDeclaredDependency>
+                        <ignoredUnusedDeclaredDependency>com.aimedical:device</ignoredUnusedDeclaredDependency>
                     </ignoredUnusedDeclaredDependencies>
                 </configuration>
             </plugin>

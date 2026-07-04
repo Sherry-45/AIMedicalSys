@@ -4,14 +4,6 @@
       <h2>{{ title }}</h2>
     </div>
     <nav class="sidebar-nav">
-      <router-link
-        to="/dashboard"
-        class="nav-item"
-        :class="{ active: isActive('/dashboard') }"
-        @click="emit('select', '/dashboard')"
-      >
-        仪表盘
-      </router-link>
       <div v-if="menus && menus.length > 0" class="menu-section">
         <template v-for="menu in menus" :key="menu.id">
           <div class="menu-item" :class="{ 'has-children': hasChildren(menu) }">
@@ -22,7 +14,7 @@
               :class="{ active: isActive(menu.path) }"
               @click="emit('select', menu.path)"
             >
-              <span v-if="menu.icon" class="menu-icon">{{ menu.icon }}</span>
+              <span v-if="iconEmoji(menu.icon)" class="menu-icon">{{ iconEmoji(menu.icon) }}</span>
               <span class="menu-name">{{ menu.name }}</span>
             </router-link>
             <div
@@ -31,7 +23,7 @@
               :class="{ active: isParentActive(menu) }"
               @click="toggleExpand(menu)"
             >
-              <span v-if="menu.icon" class="menu-icon">{{ menu.icon }}</span>
+              <span v-if="iconEmoji(menu.icon)" class="menu-icon">{{ iconEmoji(menu.icon) }}</span>
               <span class="menu-name">{{ menu.name }}</span>
               <span class="expand-icon" :class="{ expanded: isExpanded(menu) }">▶</span>
             </div>
@@ -66,7 +58,7 @@
  *   <li>区分父菜单（有 children）和叶子菜单（无 children）：父菜单不跳转，仅展开/收起</li>
  * </ul>
  */
-import { ref, type Ref } from 'vue'
+import { ref, watch, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
 import type { MenuItem } from '../types'
 
@@ -87,6 +79,81 @@ const route = useRoute()
 
 // 已展开的父菜单 id 集合
 const expandedKeys: Ref<Set<number>> = ref(new Set())
+
+/**
+ * 后端 icon 字段存的是英文图标名（如 'stethoscope'、'medicine'），
+ * 前端无对应图标库，直接显示会变成英文文本。此处映射为 emoji，
+ * 未匹配的图标名返回空字符串（不显示），避免出现英文文本。
+ */
+const ICON_EMOJI_MAP: Record<string, string> = {
+  dashboard: '📊',
+  stethoscope: '🩺',
+  bell: '🔔',
+  'user-friend': '👤',
+  registration: '📋',
+  'edit-square': '📝',
+  calendar: '📅',
+  robot: '🤖',
+  brain: '🧠',
+  search: '🔍',
+  edit: '✏️',
+  check: '✅',
+  'file-text': '📄',
+  medicine: '💊',
+  rollback: '↩️',
+  list: '📋',
+  box: '📦',
+  clipboard: '📋',
+  swap: '🔄',
+  shop: '🏪',
+  'user-add': '👤',
+  'money-collect': '💰',
+  'file-done': '✅',
+  heart: '❤️',
+  'line-chart': '📈',
+  setting: '⚙️',
+  user: '👤',
+  role: '👥',
+  menu: '☰',
+  peoples: '👥',
+  'user-tag': '🏷️',
+  idcard: '🪪',
+  'id-card': '🪪',
+  form: '📝',
+  logininfor: '🔐',
+  monitor: '📈',
+}
+
+function iconEmoji(icon?: string): string {
+  if (!icon) return ''
+  return ICON_EMOJI_MAP[icon] || ''
+}
+
+/**
+ * 自动展开当前激活路径所属的父目录，避免用户登录后看到全部收起的目录、
+ * 找不到当前页面所在的分组。
+ */
+function autoExpandActiveParent(): void {
+  if (!props.menus || props.menus.length === 0) return
+  const currentPath = props.activeMenu || route.path
+  for (const menu of props.menus) {
+    if (hasChildren(menu) && menu.children!.some((child) => isActive(child.path))) {
+      if (!expandedKeys.value.has(menu.id)) {
+        const next = new Set(expandedKeys.value)
+        next.add(menu.id)
+        expandedKeys.value = next
+      }
+    }
+  }
+}
+
+watch(
+  () => [props.menus, route.path, props.activeMenu] as const,
+  () => {
+    autoExpandActiveParent()
+  },
+  { immediate: true, deep: true },
+)
 
 function hasChildren(menu: MenuItem): boolean {
   return !!(menu.children && menu.children.length > 0)

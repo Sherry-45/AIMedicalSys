@@ -6,9 +6,17 @@ import com.aimedical.modules.ai.api.dto.diagnosis.DiagnosisRequest;
 import com.aimedical.modules.ai.api.dto.diagnosis.DiagnosisResponse;
 import com.aimedical.modules.ai.api.dto.examination.ExaminationRecommendRequest;
 import com.aimedical.modules.ai.api.dto.examination.ExaminationRecommendResponse;
+import com.aimedical.modules.doctor.dto.request.AiDiscussionConclusionRequest;
+import com.aimedical.modules.doctor.dto.request.AiExecutionOrderRequest;
+import com.aimedical.modules.doctor.dto.request.AiImageAnalysisRequest;
+import com.aimedical.modules.doctor.dto.request.AiInspectionReportRequest;
 import com.aimedical.modules.doctor.dto.request.AiMedicalRecordGenRequest;
 import com.aimedical.modules.doctor.dto.request.AiPrescriptionAssistRequest;
 import com.aimedical.modules.doctor.dto.request.AiPrescriptionAuditRequest;
+import com.aimedical.modules.doctor.dto.response.AiDiscussionConclusionResponse;
+import com.aimedical.modules.doctor.dto.response.AiExecutionOrderResponse;
+import com.aimedical.modules.doctor.dto.response.AiImageAnalysisResponse;
+import com.aimedical.modules.doctor.dto.response.AiInspectionReportResponse;
 import com.aimedical.modules.doctor.dto.response.AiMedicalRecordGenResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAssistResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAuditResponse;
@@ -33,4 +41,24 @@ public interface DoctorAiService {
     Result<AiResult<AiPrescriptionAuditResponse>> prescriptionAudit(AiPrescriptionAuditRequest request, Long doctorUserId);
 
     Result<AiResult<AiMedicalRecordGenResponse>> generateMedicalRecord(AiMedicalRecordGenRequest request, Long doctorUserId);
+
+    /**
+     * 检查报告生成（§3.4.5）。
+     */
+    Result<AiResult<AiInspectionReportResponse>> generateInspectionReport(AiInspectionReportRequest request, Long doctorUserId);
+
+    /**
+     * 影像分析（§3.4.7）。
+     */
+    Result<AiResult<AiImageAnalysisResponse>> imageAnalysis(AiImageAnalysisRequest request, Long doctorUserId);
+
+    /**
+     * 执行顺序推荐（§3.4.11）。
+     */
+    Result<AiResult<AiExecutionOrderResponse>> recommendExecutionOrder(AiExecutionOrderRequest request, Long doctorUserId);
+
+    /**
+     * 讨论结论生成（§3.4.12）。
+     */
+    Result<AiResult<AiDiscussionConclusionResponse>> discussionConclusion(AiDiscussionConclusionRequest request, Long doctorUserId);
 }

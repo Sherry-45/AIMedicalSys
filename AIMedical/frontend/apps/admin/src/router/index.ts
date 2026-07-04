@@ -140,6 +140,26 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../views/system/MenuManagement.vue'),
         meta: { requiresAuth: true },
       },
+      // ---- 硬件接入 (Device) ----
+      // 静态路径须排在动态参数路径之前
+      {
+        path: '/devices',
+        name: 'DeviceList',
+        component: () => import('../views/device/DeviceList.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/devices/:id',
+        name: 'DeviceDetail',
+        component: () => import('../views/device/DeviceDetail.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/devices/:id/messages',
+        name: 'DeviceMessageList',
+        component: () => import('../views/device/DeviceMessageList.vue'),
+        meta: { requiresAuth: true },
+      },
     ],
   },
 ]

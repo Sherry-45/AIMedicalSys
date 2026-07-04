@@ -5,17 +5,31 @@ import com.aimedical.modules.ai.api.AiResult;
 import com.aimedical.modules.ai.api.AiService;
 import com.aimedical.modules.ai.api.dto.diagnosis.DiagnosisRequest;
 import com.aimedical.modules.ai.api.dto.diagnosis.DiagnosisResponse;
+import com.aimedical.modules.ai.api.dto.execution.ExecutionOrderRequest;
+import com.aimedical.modules.ai.api.dto.execution.ExecutionOrderResponse;
 import com.aimedical.modules.ai.api.dto.examination.ExaminationRecommendRequest;
 import com.aimedical.modules.ai.api.dto.examination.ExaminationRecommendResponse;
+import com.aimedical.modules.ai.api.dto.image.ImageAnalysisRequest;
+import com.aimedical.modules.ai.api.dto.image.ImageAnalysisResponse;
+import com.aimedical.modules.ai.api.dto.inspection.InspectionReportRequest;
+import com.aimedical.modules.ai.api.dto.inspection.InspectionReportResponse;
 import com.aimedical.modules.ai.api.dto.medicalrecord.MedicalRecordGenRequest;
 import com.aimedical.modules.ai.api.dto.medicalrecord.MedicalRecordGenResponse;
 import com.aimedical.modules.ai.api.dto.prescription.PrescriptionAssistRequest;
 import com.aimedical.modules.ai.api.dto.prescription.PrescriptionAssistResponse;
 import com.aimedical.modules.ai.api.dto.prescription.PrescriptionCheckRequest;
 import com.aimedical.modules.ai.api.dto.prescription.PrescriptionCheckResponse;
+import com.aimedical.modules.doctor.dto.request.AiDiscussionConclusionRequest;
+import com.aimedical.modules.doctor.dto.request.AiExecutionOrderRequest;
+import com.aimedical.modules.doctor.dto.request.AiImageAnalysisRequest;
+import com.aimedical.modules.doctor.dto.request.AiInspectionReportRequest;
 import com.aimedical.modules.doctor.dto.request.AiMedicalRecordGenRequest;
 import com.aimedical.modules.doctor.dto.request.AiPrescriptionAssistRequest;
 import com.aimedical.modules.doctor.dto.request.AiPrescriptionAuditRequest;
+import com.aimedical.modules.doctor.dto.response.AiDiscussionConclusionResponse;
+import com.aimedical.modules.doctor.dto.response.AiExecutionOrderResponse;
+import com.aimedical.modules.doctor.dto.response.AiImageAnalysisResponse;
+import com.aimedical.modules.doctor.dto.response.AiInspectionReportResponse;
 import com.aimedical.modules.doctor.dto.response.AiMedicalRecordGenResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAssistResponse;
 import com.aimedical.modules.doctor.dto.response.AiPrescriptionAuditResponse;
@@ -302,5 +316,168 @@ class DoctorAiServiceImplTest {
         assertEquals("偏头痛", data.diagnosis());
         assertEquals("布洛芬口服", data.treatmentPlan());
         verify(aiService).generateMedicalRecord(any(MedicalRecordGenRequest.class));
+    }
+
+    // ---------- 新增 4 项 AI 入口的降级 + 成功分支测试 ----------
+
+    @Test
+    void generateInspectionReport_shouldReturnDegradedResultWhenMockDegrade() {
+        Result<AiResult<AiInspectionReportResponse>> result =
+                service.generateInspectionReport(
+                        new AiInspectionReportRequest(1L, "CT", "ref-1", 100L, List.of(), "胸", "咳嗽"), 200L);
+
+        assertEquals("SUCCESS", result.getCode());
+        assertTrue(result.getData().isDegraded());
+        assertNotNull(result.getData().getFallbackReason());
+        assertNotNull(result.getData().getData());
+    }
+
+    @Test
+    void imageAnalysis_shouldReturnDegradedResultWhenMockDegrade() {
+        Result<AiResult<AiImageAnalysisResponse>> result =
+                service.imageAnalysis(
+                        new AiImageAnalysisRequest("ref-1", "chest-ct-v1", 100L, null, "CT", "胸", "咳嗽", null), 200L);
+
+        assertEquals("SUCCESS", result.getCode());
+        assertTrue(result.getData().isDegraded());
+        assertNotNull(result.getData().getFallbackReason());
+        assertNotNull(result.getData().getData());
+    }
+
+    @Test
+    void recommendExecutionOrder_shouldReturnDegradedResultSortedByUrgency() {
+        List<AiExecutionOrderRequest.TaskItem> tasks = List.of(
+                new AiExecutionOrderRequest.TaskItem(1L, "IMAGING", "胸部CT", "LOW", 100L),
+                new AiExecutionOrderRequest.TaskItem(2L, "LAB", "血常规", "HIGH", 101L),
+                new AiExecutionOrderRequest.TaskItem(3L, "LAB", "尿常规", "MEDIUM", 102L));
+        Result<AiResult<AiExecutionOrderResponse>> result =
+                service.recommendExecutionOrder(
+                        new AiExecutionOrderRequest(tasks, null, "IMAGING_DOCTOR"), 200L);
+
+        assertEquals("SUCCESS", result.getCode());
+        assertTrue(result.getData().isDegraded());
+        List<AiExecutionOrderResponse.OrderItem> order = result.getData().getData().executionOrder();
+        // HIGH 应排在最前
+        assertEquals(2L, order.get(0).taskId());
+        assertEquals("HIGH", order.get(0).priority());
+    }
+
+    @Test
+    void discussionConclusion_shouldReturnDegradedResultWhenMockDegrade() {
+        List<AiDiscussionConclusionRequest.Transcript> transcripts = List.of(
+                new AiDiscussionConclusionRequest.Transcript("DOCTOR", "张医生", "10:00", "考虑上呼吸道感染"));
+        Result<AiResult<AiDiscussionConclusionResponse>> result =
+                service.discussionConclusion(new AiDiscussionConclusionRequest(transcripts), 200L);
+
+        assertEquals("SUCCESS", result.getCode());
+        assertTrue(result.getData().isDegraded());
+        assertNotNull(result.getData().getFallbackReason());
+        assertNotNull(result.getData().getData());
+    }
+
+    @Test
+    void generateInspectionReport_shouldMapAiDataWhenServiceSucceeds() {
+        InspectionReportResponse aiData = new InspectionReportResponse();
+        aiData.setReportDraft("胸部 CT 未见明显异常");
+        aiData.setFindings(List.of("双肺纹理清晰"));
+        aiData.setImpression("未见明显异常");
+        aiData.setConfidence(85.0);
+        when(aiService.analysisReportForInspection(any(InspectionReportRequest.class)))
+                .thenReturn(CompletableFuture.completedFuture(AiResult.success(aiData)));
+
+        DoctorAiService nonDegrading = nonDegradingService();
+        Result<AiResult<AiInspectionReportResponse>> result =
+                nonDegrading.generateInspectionReport(
+                        new AiInspectionReportRequest(1L, "CT", "ref-1", 100L, List.of(), "胸", "咳嗽"), 200L);
+
+        assertEquals("SUCCESS", result.getCode());
+        assertFalse(result.getData().isDegraded());
+        AiInspectionReportResponse data = result.getData().getData();
+        assertEquals("胸部 CT 未见明显异常", data.reportDraft());
+        assertEquals(List.of("双肺纹理清晰"), data.findings());
+        assertEquals("未见明显异常", data.impression());
+        assertEquals(85.0, data.confidence());
+        verify(aiService).analysisReportForInspection(any(InspectionReportRequest.class));
+    }
+
+    @Test
+    void imageAnalysis_shouldMapAiDataWhenServiceSucceeds() {
+        ImageAnalysisResponse aiData = new ImageAnalysisResponse();
+        aiData.setModelId("chest-ct-v1");
+        ImageAnalysisResponse.RecognitionResult rec = new ImageAnalysisResponse.RecognitionResult();
+        rec.setRegions(List.of("左肺上叶"));
+        rec.setLabels(List.of("结节"));
+        rec.setScores(List.of(0.92));
+        aiData.setRecognitionResult(rec);
+        aiData.setConfidence(92.0);
+        aiData.setAuxiliaryAdvice("建议结合临床进一步复查");
+        when(aiService.imageAnalysis(any(ImageAnalysisRequest.class)))
+                .thenReturn(CompletableFuture.completedFuture(AiResult.success(aiData)));
+
+        DoctorAiService nonDegrading = nonDegradingService();
+        Result<AiResult<AiImageAnalysisResponse>> result =
+                nonDegrading.imageAnalysis(
+                        new AiImageAnalysisRequest("ref-1", "chest-ct-v1", 100L, null, "CT", "胸", "咳嗽", null), 200L);
+
+        assertEquals("SUCCESS", result.getCode());
+        assertFalse(result.getData().isDegraded());
+        AiImageAnalysisResponse data = result.getData().getData();
+        assertEquals("chest-ct-v1", data.modelId());
+        assertEquals(List.of("左肺上叶"), data.recognitionResult().regions());
+        assertEquals(List.of("结节"), data.recognitionResult().labels());
+        assertEquals(92.0, data.confidence());
+        verify(aiService).imageAnalysis(any(ImageAnalysisRequest.class));
+    }
+
+    @Test
+    void recommendExecutionOrder_shouldMapAiDataWhenServiceSucceeds() {
+        ExecutionOrderResponse aiData = new ExecutionOrderResponse();
+        ExecutionOrderResponse.OrderItem item = new ExecutionOrderResponse.OrderItem();
+        item.setTaskId(2L);
+        item.setPriority("P1");
+        item.setRecommendedTime("立即");
+        item.setReason("急诊检查优先");
+        aiData.setExecutionOrder(List.of(item));
+        aiData.setSummary("按急诊优先排序");
+        aiData.setDisclaimerRequired(Boolean.TRUE);
+        when(aiService.recommendExecutionOrder(any(ExecutionOrderRequest.class)))
+                .thenReturn(CompletableFuture.completedFuture(AiResult.success(aiData)));
+
+        DoctorAiService nonDegrading = nonDegradingService();
+        List<AiExecutionOrderRequest.TaskItem> tasks = List.of(
+                new AiExecutionOrderRequest.TaskItem(2L, "LAB", "血常规", "HIGH", 101L));
+        Result<AiResult<AiExecutionOrderResponse>> result =
+                nonDegrading.recommendExecutionOrder(
+                        new AiExecutionOrderRequest(tasks, null, "IMAGING_DOCTOR"), 200L);
+
+        assertEquals("SUCCESS", result.getCode());
+        assertFalse(result.getData().isDegraded());
+        AiExecutionOrderResponse data = result.getData().getData();
+        assertEquals(1, data.executionOrder().size());
+        assertEquals(2L, data.executionOrder().get(0).taskId());
+        assertEquals("P1", data.executionOrder().get(0).priority());
+        assertEquals("按急诊优先排序", data.summary());
+        assertTrue(data.disclaimerRequired());
+        verify(aiService).recommendExecutionOrder(any(ExecutionOrderRequest.class));
+    }
+
+    @Test
+    void discussionConclusion_shouldDegradeEvenWhenServiceSucceedsDueToEmptyResponse() {
+        // 当前 AI 能力响应为空对象，即使成功也走降级包装
+        when(aiService.discussionConclusion(any(com.aimedical.modules.ai.api.dto.discussion.DiscussionConclusionRequest.class)))
+                .thenReturn(CompletableFuture.completedFuture(
+                        AiResult.success(new com.aimedical.modules.ai.api.dto.discussion.DiscussionConclusionResponse())));
+
+        DoctorAiService nonDegrading = nonDegradingService();
+        List<AiDiscussionConclusionRequest.Transcript> transcripts = List.of(
+                new AiDiscussionConclusionRequest.Transcript("DOCTOR", "张医生", "10:00", "考虑上呼吸道感染"));
+        Result<AiResult<AiDiscussionConclusionResponse>> result =
+                nonDegrading.discussionConclusion(new AiDiscussionConclusionRequest(transcripts), 200L);
+
+        assertEquals("SUCCESS", result.getCode());
+        // 由于 AI 响应为空对象，统一包装为降级
+        assertTrue(result.getData().isDegraded());
+        assertNotNull(result.getData().getFallbackReason());
+        verify(aiService).discussionConclusion(any(com.aimedical.modules.ai.api.dto.discussion.DiscussionConclusionRequest.class));
     }
 }

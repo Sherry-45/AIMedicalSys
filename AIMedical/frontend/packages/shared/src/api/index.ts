@@ -248,8 +248,8 @@ export { windowApi } from './window'
 export { healthRecordApi } from './health-record'
 export { registrationApi } from './registration'
 
-// 管理员端 API（用户/角色/岗位管理）
-export { userManagementApi, roleManagementApi, postManagementApi } from './admin'
+// 管理员端 API（用户/角色/岗位管理 + 硬件接入设备管理）
+export { userManagementApi, roleManagementApi, postManagementApi, adminApi } from './admin'
 
 /**
  * AI 智能导诊 API

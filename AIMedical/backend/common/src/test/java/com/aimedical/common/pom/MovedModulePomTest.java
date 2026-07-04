@@ -144,6 +144,9 @@ class MovedModulePomTest {
         assertTrue(exists(rootPom, "/project/modules/module[.='modules/admin']"));
         assertTrue(exists(rootPom, "/project/modules/module[.='modules/registration']"));
         assertTrue(exists(rootPom, "/project/modules/module[.='modules/medical-order']"));
+        assertTrue(exists(rootPom, "/project/modules/module[.='modules/examination']"));
+        assertTrue(exists(rootPom, "/project/modules/module[.='modules/lab-test']"));
+        assertTrue(exists(rootPom, "/project/modules/module[.='modules/device']"));
         assertTrue(exists(rootPom, "/project/modules/module[.='modules/consultation']"));
         assertTrue(exists(rootPom, "/project/modules/module[.='modules/prescription']"));
         assertTrue(exists(rootPom, "/project/modules/module[.='modules/pharmacy']"));

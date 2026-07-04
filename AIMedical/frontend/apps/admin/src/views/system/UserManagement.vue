@@ -285,7 +285,7 @@ async function loadList() {
       return
     }
     list.value = result.content ?? []
-    total.value = result.totalElements ?? 0
+    total.value = result.total_elements ?? 0
   } finally {
     loading.value = false
   }

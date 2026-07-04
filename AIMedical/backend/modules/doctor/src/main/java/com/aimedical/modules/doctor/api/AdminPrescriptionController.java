@@ -10,6 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -41,11 +42,15 @@ public class AdminPrescriptionController {
     /**
      * 分页查询全部处方（可选状态筛选）。
      *
+     * <p>使用 readOnly 事务保证 Hibernate Session 在整个方法期间打开，
+     * 避免 items 懒加载触发 LazyInitializationException。
+     *
      * @param status 处方状态（DRAFT/PENDING_REVIEW/APPROVED/REJECTED），可选
      * @param page   页码，从 0 开始
      * @param size   每页大小
      */
     @GetMapping
+    @Transactional(readOnly = true)
     public Result<Page<PrescriptionResponse>> list(
             @RequestParam(required = false) String status,
             @RequestParam(required = false, defaultValue = "0") Integer page,

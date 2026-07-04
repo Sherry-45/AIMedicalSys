@@ -15,8 +15,8 @@ export interface ApiResult<T = unknown> {
 
 export interface PageResponse<T> {
   content: T[]
-  totalElements: number
-  totalPages: number
+  total_elements: number
+  total_pages: number
   page: number
   size: number
 }
